@@ -41,14 +41,14 @@ class AplicationPoseEstimation:
 
 
         self.name_of_actual_position = None
-        self.number_of_actual_position = 1
+        self.number_of_actual_position = 0
         self.list_of_positions = self.positions_to_do()
         self.number_positions_to_do = len(self.list_of_positions)
         self.timer = 0
         self.last_time = 0
         self.current_time = 0
         self.time_start = 0
-        self.all_time = 30
+        self.all_time = 5
         self.flag = 0
 
 
@@ -119,7 +119,7 @@ class AplicationPoseEstimation:
 
         # Label z liczba pozycji
         row = self.leftFrame.winfo_children()[2]
-        label = tk.Label(row, text="8/10", font=("Helvetica", 50, 'bold'), fg='blue', bg='yellow')
+        label = tk.Label(row, text="-/-", font=("Helvetica", 50, 'bold'), fg='blue', bg='yellow')
         label.pack()
 
         # Label z czasem
@@ -173,12 +173,12 @@ class AplicationPoseEstimation:
         # numer pozycji
         label = self.leftFrame.winfo_children()[2].winfo_children()[0]
         # Zmiana tekstu w etykiecie
-        label.config(text=str(self.number_of_actual_position) + '/' + str(self.number_positions_to_do))
+        label.config(text=str(self.number_of_actual_position + 1) + '/' + str(self.number_positions_to_do))
 
         # czas pozycji
         label = self.leftFrame.winfo_children()[3].winfo_children()[0]
         # Zmiana tekstu w etykiecie
-        label.config(text="0:10")
+        label.config(text="00:00")
 
         self.time_start = time.time()
 
@@ -201,6 +201,49 @@ class AplicationPoseEstimation:
         sekundy = int(self.timer % 60)
 
         self.leftFrame.winfo_children()[3].winfo_children()[0].config(text=f"{minuty:02d}:{sekundy:02d}")
+
+        # przejscie do nastepnej pozycji
+        if int(self.timer) > self.all_time:
+            self.next_position()
+
+    def next_position(self):
+        self.timer = 0
+        self.number_of_actual_position += 1
+        if self.number_of_actual_position <= self.number_positions_to_do:
+            self.name_of_actual_position = self.slownik.get(self.list_of_positions[self.number_of_actual_position])
+
+            # nazwa pozycji
+            # Uzyskaj dostęp do etykiety
+            label = self.leftFrame.winfo_children()[0].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text=self.name_of_actual_position)
+
+            # numer pozycji
+            label = self.leftFrame.winfo_children()[2].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text=str(self.number_of_actual_position + 1) + '/' + str(self.number_positions_to_do))
+
+            # czas pozycji
+            label = self.leftFrame.winfo_children()[3].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text="00:00")
+        else:
+            self.stop_capture()
+            # nazwa pozycji
+            # Uzyskaj dostęp do etykiety
+            label = self.leftFrame.winfo_children()[0].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text="Nazwa pozycji")
+
+            # numer pozycji
+            label = self.leftFrame.winfo_children()[2].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text="-/-")
+
+            # czas pozycji
+            label = self.leftFrame.winfo_children()[3].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text="00:00")
 
 
 
