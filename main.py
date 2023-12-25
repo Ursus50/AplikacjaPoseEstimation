@@ -27,7 +27,7 @@ class DabMOve_DetectionGUI:
 
         self.master = master
 
-
+        # nazwa modelu do klasyfikacji pozycji
         self.model = load_model(r'C:\Inzynierka\Programy\Nauka\perc.hdf5')
         self.prog = 0.50
 
