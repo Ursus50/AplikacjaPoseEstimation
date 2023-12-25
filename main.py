@@ -40,6 +40,20 @@ class AplicationPoseEstimation:
         self.slownik = {wartosc: klucz for klucz, wartosc in self.slownik.items()}
 
 
+        self.name_of_actual_position = None
+        self.number_of_actual_position = 1
+        self.list_of_positions = self.positions_to_do()
+        self.number_positions_to_do = len(self.list_of_positions)
+        self.timer = 0
+        self.last_time = 0
+        self.current_time = 0
+        self.time_start = 0
+        self.all_time = 30
+        self.flag = 0
+
+
+
+
         self.cap = cv2.VideoCapture(video_path)
         self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
                                                   min_tracking_confidence=min_tracking_confidence)
@@ -110,7 +124,7 @@ class AplicationPoseEstimation:
 
         # Label z czasem
         row = self.leftFrame.winfo_children()[3]
-        label = tk.Label(row, text="0:25", font=("Helvetica", 50, 'bold'), fg='blue', bg='yellow')
+        label = tk.Label(row, text="0:00", font=("Helvetica", 50, 'bold'), fg='blue', bg='yellow')
         label.pack()
 
     def add_buttons(self):
@@ -149,11 +163,45 @@ class AplicationPoseEstimation:
         # Start a new thread to read and display video frames continuously
         threading.Thread(target=self.video_detection).start()
 
+        # nazwa pozycji
+        # Uzyskaj dostęp do etykiety
+        label = self.leftFrame.winfo_children()[0].winfo_children()[0]
+        self.name_of_actual_position = self.slownik.get(self.list_of_positions[self.number_of_actual_position])
+        # Zmiana tekstu w etykiecie
+        label.config(text=self.name_of_actual_position)
+
+        # numer pozycji
+        label = self.leftFrame.winfo_children()[2].winfo_children()[0]
+        # Zmiana tekstu w etykiecie
+        label.config(text=str(self.number_of_actual_position) + '/' + str(self.number_positions_to_do))
+
+        # czas pozycji
+        label = self.leftFrame.winfo_children()[3].winfo_children()[0]
+        # Zmiana tekstu w etykiecie
+        label.config(text="0:10")
+
+        self.time_start = time.time()
+
     # module for stop or pause video
     def stop_capture(self):
         self.video_running = False
         self.start_button["state"] = "normal"
         self.stop_button["state"] = "disabled"
+
+
+    def positions_to_do(self):
+        list_of_positions = [0, 1]
+        return list_of_positions
+
+    def update_timer(self):
+        # Zmiana tekstu w etykiecie
+        self.timer = self.current_time - self.time_start  # + self.timer
+
+        minuty = int(self.timer // 60)
+        sekundy = int(self.timer % 60)
+
+        self.leftFrame.winfo_children()[3].winfo_children()[0].config(text=f"{minuty:02d}:{sekundy:02d}")
+
 
 
     def get_max_value_index(self, vector):
@@ -231,10 +279,26 @@ class AplicationPoseEstimation:
         annotated_image = np.copy(rgb_image)
         if pose_landmarks_list:
             predictions = self.model.predict(flattened_landmarks_np)
-            cv2.putText(annotated_image, self.get_name_position(predictions), (300, 80), cv2.FONT_HERSHEY_PLAIN, 3,
+            name_of_position = self.get_name_position(predictions)
+            cv2.putText(annotated_image, name_of_position, (300, 80), cv2.FONT_HERSHEY_PLAIN, 3,
                         (0, 0, 0),
                         4)
             print(predictions)
+
+            if name_of_position == self.name_of_actual_position and self.flag == 0:
+                self.time_start = time.time()
+                if self.timer != 0:
+                    self.time_start -= self.timer
+                self.flag = 1
+            elif name_of_position == self.name_of_actual_position and self.flag == 1:
+                self.current_time = time.time()
+                self.update_timer()
+            elif self.flag == 1:
+                self.flag = 0
+
+
+
+
 
 
         self.mp_drawing.draw_landmarks(annotated_image, detection_result.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
@@ -244,6 +308,7 @@ class AplicationPoseEstimation:
         ret, frame = self.cap.read()
 
         if ret:
+
             # Convert the image to RGB
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             annotated_image = image.copy()
@@ -287,6 +352,11 @@ class AplicationPoseEstimation:
 
         # Release the webcam and close the window
 
+    # def next_positions(self):
+    #     for pos in self.positions_to_do():
+    #         self.video_detection()
+
+
     def __del__(self):
         self.cap.release()
         cv2.destroyAllWindows()
@@ -296,10 +366,10 @@ class AplicationPoseEstimation:
 if __name__ == "__main__":
     root = tk.Tk()
     app = AplicationPoseEstimation(root, 0)
-    # app = DabMOve_DetectionGUI(root, r'C:\Inzynierka\Programy\Filmy\Butterfly.mp4')
-    # app = DabMOve_DetectionGUI(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
-    # app = DabMOve_DetectionGUI(root, r'C:\Inzynierka\Programy\Filmy\Chair.mp4')
-    # app = DabMOve_DetectionGUI(root, r'C:\Inzynierka\Programy\Filmy\Warrior.mp4')
+    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Butterfly.mp4')
+    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
+    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Chair.mp4')
+    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Warrior.mp4')
 
     root.mainloop()
     root.configure(background='black')
