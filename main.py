@@ -41,7 +41,7 @@ class AplicationPoseEstimation:
 
 
         self.name_of_actual_position = None
-        self.number_of_actual_position = 0
+        self.number_of_actual_position = -1
         self.list_of_positions = self.positions_to_do()
         self.number_positions_to_do = len(self.list_of_positions)
         self.timer = 0
@@ -163,24 +163,8 @@ class AplicationPoseEstimation:
         # Start a new thread to read and display video frames continuously
         threading.Thread(target=self.video_detection).start()
 
-        # nazwa pozycji
-        # Uzyskaj dostęp do etykiety
-        label = self.leftFrame.winfo_children()[0].winfo_children()[0]
-        self.name_of_actual_position = self.slownik.get(self.list_of_positions[self.number_of_actual_position])
-        # Zmiana tekstu w etykiecie
-        label.config(text=self.name_of_actual_position)
+        self.next_position()
 
-        # numer pozycji
-        label = self.leftFrame.winfo_children()[2].winfo_children()[0]
-        # Zmiana tekstu w etykiecie
-        label.config(text=str(self.number_of_actual_position + 1) + '/' + str(self.number_positions_to_do))
-
-        # czas pozycji
-        label = self.leftFrame.winfo_children()[3].winfo_children()[0]
-        # Zmiana tekstu w etykiecie
-        label.config(text="00:00")
-
-        self.time_start = time.time()
 
     # module for stop or pause video
     def stop_capture(self):
@@ -229,6 +213,7 @@ class AplicationPoseEstimation:
             label.config(text="00:00")
         else:
             self.stop_capture()
+            self.number_of_actual_position = -1
             # nazwa pozycji
             # Uzyskaj dostęp do etykiety
             label = self.leftFrame.winfo_children()[0].winfo_children()[0]
@@ -338,10 +323,6 @@ class AplicationPoseEstimation:
                 self.update_timer()
             elif self.flag == 1:
                 self.flag = 0
-
-
-
-
 
 
         self.mp_drawing.draw_landmarks(annotated_image, detection_result.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
