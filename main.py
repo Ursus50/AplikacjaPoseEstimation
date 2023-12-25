@@ -19,7 +19,7 @@ import time
 
 
 
-class DabMOve_DetectionGUI:
+class AplicationPoseEstimation:
     def __init__(self, master, video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
         self.mp_drawing = mp.solutions.drawing_utils
         # self.mp_holistic = mp.solutions.holistic
@@ -80,56 +80,18 @@ class DabMOve_DetectionGUI:
             row_frame = tk.Frame(self.leftFrame, bg="yellow", height=50)
             row_frame.pack(fill="both", expand=True)
 
-        # # title on canvas
-        # self.master = master
-        # self.master.title("DabMove Detector")
-        # #  creation of canvas with dimensions
-        # self.canvas = tk.Canvas(self.master, width=640, height=480, bg="black")
-        # self.canvas.pack()
-        # #  title on left upper corner
-        # self.button_frame = tk.Frame(self.master)
-        # self.button_frame.pack(side=tk.LEFT)
-        # # self.button_frame.configure(bg="blue")
-        # #  start button
-        # self.start_button = tk.Button(self.button_frame, text="Start", command=self.start_video, padx=1, width=15,
-        #                               height=3, bg="green", font=("Arial Black", 8, "bold"))
-        # self.start_button.pack(side=tk.LEFT)
-        # # stop button
-        # self.stop_button = tk.Button(self.button_frame, text="Stop", command=self.stop_video, padx=1, width=15,
-        #                              height=3, bg="red", font=("Arial Black", 8, "bold"))
-        # self.stop_button.pack(side=tk.LEFT)
-        # #  upload button
-        # self.upload_button = tk.Button(self.button_frame, text="Upload Video or image", command=self.upload_video,
-        #                                padx=3, width=16, height=3, bg="yellow", font=("Arial Black", 8, "bold"))
-        # self.upload_button.pack(side=tk.LEFT)
-        #
-        # #  Add the following line to create a new label to show the leg lift count
-        # self.DabMove_count_label = tk.Label(self.master, text=f"DabMove Counts: 0", fg="red",
-        #                                     font=("Arial Black", 8, "bold"))
-        # self.DabMove_count_label.pack(side=tk.LEFT, anchor=tk.CENTER)
-        # self.angle_correction = tk.Label(self.master, text=f"Incorrect DabMove", fg="red",
-        #                                  font=("Arial Black", 8, "bold"))
-        # self.angle_correction.place(x=130, y=25, anchor='ne')
-
         self.add_labels()
         self.add_buttons()
 
         self.DabMove_image = None
         self.video_running = False
-        # self.video_detection()
+
     def add_labels(self):
 
         # Label z nazwa pozycji
         row = self.leftFrame.winfo_children()[0]
         label = tk.Label(row, text="Nazwa Pozycji", font=("Helvetica", 30, 'bold'), fg='blue', bg='yellow')
         label.pack(fill="both", expand=True)
-        # label.grid(row=0, column=0)  # Ustaw pozycję wiersza i kolumny
-        # row_frame.pack(fill="both", expand=True)
-
-        # kolumna1 = row.winfo_children()[0]
-        # kolumna1.config(text="Nazwa Pozycji", font=("Helvetica", 30, 'bold'), fg='blue')
-
-
 
         row = self.leftFrame.winfo_children()[1]
 
@@ -152,9 +114,6 @@ class DabMOve_DetectionGUI:
         label.pack()
 
     def add_buttons(self):
-        # rowButtons = self.leftFrame.winfo_children()[2]
-        # kolumna1 = rowButtons.winfo_children()[0]
-        # kolumna1.config(text="Nowy tekst w kolumnie 1")
 
         rowButtons = self.leftFrame.winfo_children()[5]
 
@@ -181,7 +140,6 @@ class DabMOve_DetectionGUI:
         file_path = filedialog.askopenfilename()
         if file_path:
             self.cap = cv2.VideoCapture(file_path)
-            # self.cap = cv2.VideoCapture(0)
 
     # module for start video
     def start_capture(self):
@@ -238,11 +196,6 @@ class DabMOve_DetectionGUI:
         # Assuming NormalizedLandmark has attributes x, y, and z
         new_list = [{'x': item.x, 'y': item.y, 'z': item.z} for item in detection_result.pose_landmarks.landmark]
 
-
-
-
-
-
         # Indeksy do usunięcia
         indexes_to_remove = [1, 3, 4, 6, 8, 7, 22, 21]
 
@@ -253,14 +206,8 @@ class DabMOve_DetectionGUI:
         pose_landmarks_list = [pose_landmarks for i, pose_landmarks in enumerate(new_list)
                                if i not in indexes_to_remove]
 
-
-
         # Spłaszczanie listy do jednowymiarowej listy liczb
         flattened_landmarks = [value for item in pose_landmarks_list for value in item.values()]
-
-
-
-        # flattened_landmarks = self.flatten_normalized_landmarks(pose_landmarks_list)
 
         flattened_landmarks_np = np.array([flattened_landmarks])  # Dodajemy dodatkowy wymiar dla batch_size
 
@@ -311,8 +258,6 @@ class DabMOve_DetectionGUI:
                     # Draw the detection points on the image
                     annotated_image = self.draw_landmarks_on_image(annotated_image, results)
 
-                    # resized_image = cv2.resize(annotated_image, (640, 480))
-                    # self.photo = ImageTk.PhotoImage(Image.fromarray(resized_image))
 
                 frame = cv2.resize(annotated_image, (self.camera_width, self.camera_height))
 
@@ -328,7 +273,6 @@ class DabMOve_DetectionGUI:
                         left:left + 4 * min_dim // 3]  # wyswietlany obraz kamery ma proporcje 4:3
 
                 self.photo = ImageTk.PhotoImage(Image.fromarray(frame))
-                # self.canvas.create_image(0, 0, anchor=tk.NW, image=self.leg_lift_image)
                 self.labelCamera.configure(image=self.photo)
                 self.labelCamera.image = self.photo  # Aktualizacja referencji do obrazu w etykiecie
 
@@ -351,7 +295,7 @@ class DabMOve_DetectionGUI:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = DabMOve_DetectionGUI(root, 0)
+    app = AplicationPoseEstimation(root, 0)
     # app = DabMOve_DetectionGUI(root, r'C:\Inzynierka\Programy\Filmy\Butterfly.mp4')
     # app = DabMOve_DetectionGUI(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
     # app = DabMOve_DetectionGUI(root, r'C:\Inzynierka\Programy\Filmy\Chair.mp4')
