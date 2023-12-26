@@ -5,7 +5,7 @@ from tkinter import *
 import mediapipe as mp
 from PIL import Image, ImageTk
 import threading
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import json
 from mediapipe.tasks import python
 # from mediapipe.tasks.python import vision
@@ -39,22 +39,23 @@ class AplicationPoseEstimation:
         print(type(self.slownik))
         self.slownik = {wartosc: klucz for klucz, wartosc in self.slownik.items()}
 
+        self.new_slownik = {}
 
-        self.name_of_actual_position = None
-        self.number_of_actual_position = -1
-        self.list_of_positions = self.positions_to_do()
-        self.number_positions_to_do = len(self.list_of_positions)
-        self.timer = 0
-        self.last_time = 0
-        self.current_time = 0
-        self.time_start = 0
-        self.all_time = 5
-        self.flag = 0
-
-
-
+        # self.name_of_actual_position = None
+        # self.number_of_actual_position = -1
+        # # self.list_of_positions = self.positions_to_do()
+        # self.list_of_positions = []
+        # self.positions_to_do()
+        # self.number_positions_to_do = len(self.list_of_positions)
+        # self.timer = 0
+        # self.last_time = 0
+        # self.current_time = 0
+        # self.time_start = 0
+        # self.all_time = 5
+        # self.flag = 0
 
         self.cap = cv2.VideoCapture(video_path)
+
         self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
                                                   min_tracking_confidence=min_tracking_confidence)
 
@@ -65,17 +66,79 @@ class AplicationPoseEstimation:
 
         self.master.geometry(f"{self.app_width}x{self.app_height}")
 
+        # Konfiguracja głównego okna
+        master.grid_rowconfigure(0, weight=1)
+        master.grid_columnconfigure(0, weight=1)
+
+        self.list_of_positions = []
+
+        # utworzenie widoku z menu
+        self.strona_menu()
+        # utworzenie widoku z przeprowadzaniem cwiczen
+        self.strona_sesji()
+        # utworzenie widoku z umozliwiajacego modyfikacje sesji
+        self.strona_modify()
+
+        self.name_of_actual_position = None
+        self.number_of_actual_position = -1
+        # self.list_of_positions = self.positions_to_do()
+
+        self.number_positions_to_do = 0
+        self.positions_to_do()
+        # self.number_positions_to_do = len(self.list_of_positions)
+        self.timer = 0
+        self.last_time = 0
+        self.current_time = 0
+        self.time_start = 0
+        self.all_time = 5
+        self.flag = 0
+        self.DabMove_image = None
+        self.video_running = False
+
+    def strona_menu(self):
+        # Tworzenie ramki
+        self.frame_strona1 = tk.Frame(self.master)
+        self.frame_strona1.grid(row=0, column=0)
+
+        # Tworzenie nagłówka
+        self.label = tk.Label(self.frame_strona1, text="Menu", font=("Helvetica", 40))
+        self.label.grid(row=0, column=0, columnspan=3, pady=20)
+
+        # Tworzenie etykiety
+        self.opis_label = tk.Label(self.frame_strona1, text="To jest opis aplikacji.", font=("Helvetica", 12))
+        self.opis_label.grid(row=1, column=1, pady=10, columnspan=1)
+
+        # Tworzenie przycisków
+        button_font = ("Helvetica", 14)
+        button_relief = "groove"
+        button_width = 30
+
+        self.rozpocznij_button = tk.Button(self.frame_strona1, text="Rozpocznij sesję", command=self.ukryj_menu,
+                                           font=button_font, relief=button_relief, width=button_width, height=4)
+        self.rozpocznij_button.grid(row=2, column=1, pady=20, columnspan=1)
+
+        self.modyfikuj_button = tk.Button(self.frame_strona1, text="Modyfikuj sesję", command=self.modyfikuj_sesje,
+                                          font=button_font, relief=button_relief, width=button_width, height=4)
+        self.modyfikuj_button.grid(row=3, column=1, pady=20, columnspan=1)
+
+        self.historia_button = tk.Button(self.frame_strona1, text="Historia", command=self.pokaz_historie,
+                                         font=button_font, relief=button_relief, width=button_width, height=4)
+        self.historia_button.grid(row=4, column=1, pady=20, columnspan=1)
+    def strona_sesji(self):
+        self.frame_strona2 = tk.Frame(self.master)
+        # self.frame_strona2.grid(row=0, column=0, sticky="nsew")
+
         # Podzielenie glownego okna na 2 czesci
-        self.master.grid_rowconfigure(0, weight=1)
-        self.master.grid_columnconfigure(0, weight=3, minsize=300)
-        self.master.grid_columnconfigure(1, weight=7, minsize=700)
+        self.frame_strona2.grid_rowconfigure(0, weight=1)
+        self.frame_strona2.grid_columnconfigure(0, weight=3, minsize=300)
+        self.frame_strona2.grid_columnconfigure(1, weight=7, minsize=700)
 
         # Lewa czesc
-        self.leftFrame = tk.Frame(master, bg="lightblue")
+        self.leftFrame = tk.Frame(self.frame_strona2, bg="lightblue")
         self.leftFrame.grid(row=0, column=0, sticky="nsew")
 
-        #prawa czesc
-        self.rightFrame = tk.Frame(master, bg="lightgreen")
+        # prawa czesc
+        self.rightFrame = tk.Frame(self.frame_strona2, bg="lightgreen")
         self.rightFrame.grid(row=0, column=1, sticky="nsew")
 
         # Umieszczenie obrazu z kamery po środku prawego okna
@@ -87,7 +150,8 @@ class AplicationPoseEstimation:
         # Obraz z kamery
         self.camera_width = 9 * self.app_width // 10
         self.camera_height = 9 * self.app_height // 10
-        self.empty_image = Image.new("RGB", (3 * self.camera_width // 4, self.camera_height), "green")  # Tworzenie pustego obrazu
+        self.empty_image = Image.new("RGB", (3 * self.camera_width // 4, self.camera_height),
+                                     "green")  # Tworzenie pustego obrazu
 
         # Dodaj 6 wierszy do kolumny
         for i in range(6):
@@ -96,9 +160,6 @@ class AplicationPoseEstimation:
 
         self.add_labels()
         self.add_buttons()
-
-        self.DabMove_image = None
-        self.video_running = False
 
     def add_labels(self):
 
@@ -129,24 +190,72 @@ class AplicationPoseEstimation:
 
     def add_buttons(self):
 
-        rowButtons = self.leftFrame.winfo_children()[5]
+        rowButtons = self.leftFrame.winfo_children()[4]
 
         print(rowButtons)
 
         rowButtons = tk.Frame(rowButtons, bg="white")
         rowButtons.pack(fill="both", expand=True)
 
-        self.start_button = tk.Button(rowButtons, text="Start", width=10, command=self.start_capture)
+        self.start_button = tk.Button(rowButtons, text="Start", relief="groove", width=10, command=self.start_capture)
         self.start_button.grid(row=0, column=0, sticky="nsew")
         rowButtons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
 
-        self.stop_button = tk.Button(rowButtons, text="Stop", width=10, command=self.stop_capture)
+        self.stop_button = tk.Button(rowButtons, text="Stop", relief="groove", width=10, command=self.stop_capture)
         self.stop_button.grid(row=0, column=1, sticky="nsew")
         self.stop_button["state"] = "disabled"
         rowButtons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
 
         rowButtons.grid_columnconfigure(1, weight=1)
         rowButtons.grid_rowconfigure(0, weight=1)
+
+        rowButtons = self.leftFrame.winfo_children()[5]
+        rowButtons = tk.Frame(rowButtons, bg="white")
+        rowButtons.pack(fill="both", expand=True)
+        self.menu_button = tk.Button(rowButtons, text="Menu", relief="groove", width=10, command=self.ukryj)
+        self.menu_button.grid(row=0, column=0, sticky="nsew")
+        rowButtons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
+        rowButtons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
+
+    def strona_modify(self):
+        self.frame_strona3 = tk.Frame(self.master)
+        # self.frame_strona3.grid(row=0, column=0)
+
+        # Tworzenie nagłówka
+        self.label_modify = tk.Label(self.frame_strona3, text="Modyfikuj sesję ćwiczeń", font=("Helvetica", 40))
+        self.label_modify.grid(row=0, column=0, columnspan=3, pady=20)
+
+        # Tworzenie przycisków typu Checkbutton
+        self.check_var_list = []
+        self.checkbuttons_list = []
+
+        self.new_slownik = {}
+
+        # Uzyskaj listę wartości, pomijając wartość 'None'
+        values_list = [value for value in self.slownik.values() if value != 'None']
+
+        for i in range(0, len(values_list)):
+            check_var = tk.IntVar(value=1)  # Ustawienie wartości na 1, czyli zaznaczone
+            self.check_var_list.append(check_var)
+
+            check_button = tk.Checkbutton(self.frame_strona3, text=values_list[i], variable=check_var,
+                                          font=("Helvetica", 16), command=lambda i=i: self.update_selected_options(i))
+            self.checkbuttons_list.append(check_button)
+            check_button.grid(row=i+1, column=0, pady=10, sticky='w')
+
+            self.new_slownik[values_list[i-1]] = self.check_var_list[i].get()
+
+
+        # Dodaj przycisk pod checkboxami
+        self.button_modify = tk.Button(self.frame_strona3, text="Menu", command=self.ukryj_modify,
+                                          font=("Helvetica", 14), relief="groove", width=40, height=4)
+        self.button_modify.grid(row=len(values_list)+2, column=0,  sticky='e')
+
+    # uaktualnienie slownika odpowiedzialnego za pozycje do wykonania
+    def update_selected_options(self, i):
+        check_var = self.check_var_list[i]
+        self.new_slownik[self.checkbuttons_list[i].cget("text")] = check_var.get()
+
 
 
     # module for upload video from directory
@@ -172,10 +281,47 @@ class AplicationPoseEstimation:
         self.start_button["state"] = "normal"
         self.stop_button["state"] = "disabled"
 
+    def ukryj(self):
+        self.frame_strona1.grid_forget()
+        self.frame_strona2.grid_forget()
+        self.frame_strona1.grid(row=0, column=0)
 
+    def ukryj_menu(self):
+        self.frame_strona2.grid_forget()
+        self.frame_strona1.grid_forget()
+        self.frame_strona2.grid(row=0, column=0, sticky="nsew")
+
+    def ukryj_modify(self):
+        self.positions_to_do()
+        self.frame_strona3.grid_forget()
+        self.frame_strona1.grid_forget()
+        self.frame_strona1.grid(row=0, column=0)
+
+    def modyfikuj_sesje(self):
+        self.frame_strona3.grid_forget()
+        self.frame_strona1.grid_forget()
+        self.frame_strona3.grid(row=0, column=0)
+
+    def pokaz_historie(self):
+        messagebox.showinfo("Historia", "To jest historia aplikacji.")
+
+    # Lista pozycji do wykonania przez uzytkownika w czasie seesji
     def positions_to_do(self):
-        list_of_positions = [0, 1]
-        return list_of_positions
+
+        # list_of_positions = []
+        self.list_of_positions.clear()
+
+        for key, value in self.new_slownik.items():
+            if value == 1:
+                for key2, value2 in self.slownik.items():
+                    if value2 == key:
+                        self.list_of_positions.append(key2)
+
+        self.number_positions_to_do = len(self.list_of_positions)
+        # self.list_of_positions.append(0)
+        # self.list_of_positions.append(1)
+        # # list_of_positions = [0, 1]
+        # return list_of_positions
 
     def update_timer(self):
         # Zmiana tekstu w etykiecie
@@ -395,6 +541,4 @@ if __name__ == "__main__":
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Chair.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Warrior.mp4')
 
-    root.mainloop()
-    root.configure(background='black')
     root.mainloop()
