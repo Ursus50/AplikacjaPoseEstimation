@@ -39,22 +39,23 @@ class AplicationPoseEstimation:
         print(type(self.slownik))
         self.slownik = {wartosc: klucz for klucz, wartosc in self.slownik.items()}
 
+        self.new_slownik = {}
 
-        self.name_of_actual_position = None
-        self.number_of_actual_position = -1
-        self.list_of_positions = self.positions_to_do()
-        self.number_positions_to_do = len(self.list_of_positions)
-        self.timer = 0
-        self.last_time = 0
-        self.current_time = 0
-        self.time_start = 0
-        self.all_time = 5
-        self.flag = 0
-
-
-
+        # self.name_of_actual_position = None
+        # self.number_of_actual_position = -1
+        # # self.list_of_positions = self.positions_to_do()
+        # self.list_of_positions = []
+        # self.positions_to_do()
+        # self.number_positions_to_do = len(self.list_of_positions)
+        # self.timer = 0
+        # self.last_time = 0
+        # self.current_time = 0
+        # self.time_start = 0
+        # self.all_time = 5
+        # self.flag = 0
 
         self.cap = cv2.VideoCapture(video_path)
+
         self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
                                                   min_tracking_confidence=min_tracking_confidence)
 
@@ -69,7 +70,7 @@ class AplicationPoseEstimation:
         master.grid_rowconfigure(0, weight=1)
         master.grid_columnconfigure(0, weight=1)
 
-
+        self.list_of_positions = []
 
         # utworzenie widoku z menu
         self.strona_menu()
@@ -78,6 +79,19 @@ class AplicationPoseEstimation:
         # utworzenie widoku z umozliwiajacego modyfikacje sesji
         self.strona_modify()
 
+        self.name_of_actual_position = None
+        self.number_of_actual_position = -1
+        # self.list_of_positions = self.positions_to_do()
+
+        self.number_positions_to_do = 0
+        self.positions_to_do()
+        # self.number_positions_to_do = len(self.list_of_positions)
+        self.timer = 0
+        self.last_time = 0
+        self.current_time = 0
+        self.time_start = 0
+        self.all_time = 5
+        self.flag = 0
         self.DabMove_image = None
         self.video_running = False
 
@@ -208,28 +222,41 @@ class AplicationPoseEstimation:
         # self.frame_strona3.grid(row=0, column=0)
 
         # Tworzenie nagłówka
-        self.label_modify = tk.Label(self.frame_strona3, text="Menu", font=("Helvetica", 40))
+        self.label_modify = tk.Label(self.frame_strona3, text="Modyfikuj sesję ćwiczeń", font=("Helvetica", 40))
         self.label_modify.grid(row=0, column=0, columnspan=3, pady=20)
 
         # Tworzenie przycisków typu Checkbutton
         self.check_var_list = []
+        self.checkbuttons_list = []
+
+        self.new_slownik = {}
 
         # Uzyskaj listę wartości, pomijając wartość 'None'
         values_list = [value for value in self.slownik.values() if value != 'None']
 
-        for i in range(1, len(values_list) + 1):
-        # for i, value in enumerate(self.slownik.values()):
+        for i in range(0, len(values_list)):
             check_var = tk.IntVar(value=1)  # Ustawienie wartości na 1, czyli zaznaczone
             self.check_var_list.append(check_var)
 
-            check_button = tk.Checkbutton(self.frame_strona3, text=values_list[i-1], variable=check_var, font=("Helvetica", 16))
-            check_button.grid(row=i, column=0, pady=10, sticky='w')
+            check_button = tk.Checkbutton(self.frame_strona3, text=values_list[i], variable=check_var,
+                                          font=("Helvetica", 16), command=lambda i=i: self.update_selected_options(i))
+            self.checkbuttons_list.append(check_button)
+            check_button.grid(row=i+1, column=0, pady=10, sticky='w')
+
+            self.new_slownik[values_list[i-1]] = self.check_var_list[i].get()
 
 
         # Dodaj przycisk pod checkboxami
         self.button_modify = tk.Button(self.frame_strona3, text="Menu", command=self.ukryj_modify,
-                                          font=("Helvetica", 14), relief="groove", width=30, height=4)
-        self.button_modify.grid(row=11, column=0,  sticky='nsew')
+                                          font=("Helvetica", 14), relief="groove", width=40, height=4)
+        self.button_modify.grid(row=len(values_list)+2, column=0,  sticky='e')
+
+    # uaktualnienie slownika odpowiedzialnego za pozycje do wykonania
+    def update_selected_options(self, i):
+        check_var = self.check_var_list[i]
+        self.new_slownik[self.checkbuttons_list[i].cget("text")] = check_var.get()
+
+
 
     # module for upload video from directory
     def upload_video(self):
@@ -265,6 +292,7 @@ class AplicationPoseEstimation:
         self.frame_strona2.grid(row=0, column=0, sticky="nsew")
 
     def ukryj_modify(self):
+        self.positions_to_do()
         self.frame_strona3.grid_forget()
         self.frame_strona1.grid_forget()
         self.frame_strona1.grid(row=0, column=0)
@@ -279,8 +307,21 @@ class AplicationPoseEstimation:
 
     # Lista pozycji do wykonania przez uzytkownika w czasie seesji
     def positions_to_do(self):
-        list_of_positions = [0, 1]
-        return list_of_positions
+
+        # list_of_positions = []
+        self.list_of_positions.clear()
+
+        for key, value in self.new_slownik.items():
+            if value == 1:
+                for key2, value2 in self.slownik.items():
+                    if value2 == key:
+                        self.list_of_positions.append(key2)
+
+        self.number_positions_to_do = len(self.list_of_positions)
+        # self.list_of_positions.append(0)
+        # self.list_of_positions.append(1)
+        # # list_of_positions = [0, 1]
+        # return list_of_positions
 
     def update_timer(self):
         # Zmiana tekstu w etykiecie
