@@ -15,7 +15,8 @@ from keras.models import load_model
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 import time
-
+import os
+from datetime import datetime
 
 
 
@@ -92,7 +93,10 @@ class AplicationPoseEstimation:
         self.time_start = 0
         self.all_time = 5
         self.flag = 0
-        self.DabMove_image = None
+
+        self.performed_exercises = []
+        self.time_session_begin = 0
+
         self.video_running = False
 
     def strona_menu(self):
@@ -212,10 +216,34 @@ class AplicationPoseEstimation:
         rowButtons = self.leftFrame.winfo_children()[5]
         rowButtons = tk.Frame(rowButtons, bg="white")
         rowButtons.pack(fill="both", expand=True)
+
+        # przycisk odpowiedzialny za przejscie do menu
         self.menu_button = tk.Button(rowButtons, text="Menu", relief="groove", width=10, command=self.ukryj)
         self.menu_button.grid(row=0, column=0, sticky="nsew")
+
+        # przycisk odpowiedzialny za zakończenie sesji cwiczen
+        self.zakoncz_button = tk.Button(rowButtons, text="Zakończ sesję", relief="groove", width=10, command=self.zakoncz_sesje)
+        self.zakoncz_button.grid(row=0, column=1, sticky="nsew")
+
         rowButtons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
         rowButtons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
+        rowButtons.grid_columnconfigure(1, weight=1)
+
+    def zakoncz_sesje(self):
+        """ Funckja odpowiedzialna za zakonczenie sejji ćwiczeń i zapis historii do pliku"""
+
+        czas_sesji = time.time() - self.time_session_begin
+        hours = int(czas_sesji // 3600)
+        minutes = int(czas_sesji // 60)
+        seconds = int(czas_sesji % 60)
+
+        historia_cwiczen = {
+            'liczba_cwiczen': len(self.performed_exercises),
+            'liczba_wszystkich_cwiczen': self.number_positions_to_do,
+            'lista_cwiczen': self.performed_exercises,
+            'czas_sesji': f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        }
+        self.zapisz_do_pliku(historia=historia_cwiczen)
 
     def strona_modify(self):
         self.frame_strona3 = tk.Frame(self.master)
@@ -272,6 +300,7 @@ class AplicationPoseEstimation:
         # Start a new thread to read and display video frames continuously
         threading.Thread(target=self.video_detection).start()
 
+        self.time_session_begin = time.time()
         self.next_position()
 
 
@@ -339,6 +368,12 @@ class AplicationPoseEstimation:
     def next_position(self):
         self.timer = 0
         self.number_of_actual_position += 1
+
+        # stwierdzenie faktu wykonania cwiczenia
+        if self.number_of_actual_position > 0:
+            self.performed_exercises.append(self.name_of_actual_position)
+
+        # sprawdzenie czy zostalo wykonane osatnie cwiczenie
         if self.number_of_actual_position <= self.number_positions_to_do:
             self.name_of_actual_position = self.slownik.get(self.list_of_positions[self.number_of_actual_position])
 
@@ -376,8 +411,16 @@ class AplicationPoseEstimation:
             # Zmiana tekstu w etykiecie
             label.config(text="00:00")
 
+    def zapisz_do_pliku(self, historia):
+        if not os.path.exists("historia"):
+            os.makedirs("historia")
 
+        teraz = datetime.now()
+        nazwa_pliku = f"historia_{teraz.strftime('%Y-%m-%d_%H-%M-%S')}.json"
+        sciezka_pliku = os.path.join("historia", nazwa_pliku)
 
+        with open(sciezka_pliku, 'w') as plik:
+            json.dump(historia, plik, indent=2)
     def get_max_value_index(self, vector):
         max_index = np.argmax(vector)
         print(max_index)
