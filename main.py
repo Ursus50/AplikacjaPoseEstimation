@@ -69,40 +69,14 @@ class AplicationPoseEstimation:
         master.grid_rowconfigure(0, weight=1)
         master.grid_columnconfigure(0, weight=1)
 
-        # # Tworzenie ramki
-        # self.frame_strona1 = tk.Frame(self.master)
-        # self.frame_strona1.grid(row=0, column=0)
-        #
-        # # Tworzenie nagłówka
-        # self.label = tk.Label(self.frame_strona1, text="Menu", font=("Helvetica", 40))
-        # self.label.grid(row=0, column=0, columnspan=3, pady=20)
-        #
-        # # Tworzenie etykiety
-        # self.opis_label = tk.Label(self.frame_strona1, text="To jest opis aplikacji.", font=("Helvetica", 12))
-        # self.opis_label.grid(row=1, column=1, pady=10, columnspan=1)
-        #
-        # # Tworzenie przycisków
-        # button_font = ("Helvetica", 14)
-        # button_relief = "groove"
-        # button_width = 30
-        #
-        # self.rozpocznij_button = tk.Button(self.frame_strona1, text="Rozpocznij sesję", command=self.ukryj_menu,
-        #                                    font=button_font, relief=button_relief, width=button_width, height=4)
-        # self.rozpocznij_button.grid(row=2, column=1, pady=20, columnspan=1)
-        #
-        # self.modyfikuj_button = tk.Button(self.frame_strona1, text="Modyfikuj sesję", command=self.modyfikuj_sesje,
-        #                                   font=button_font, relief=button_relief, width=button_width, height=4)
-        # self.modyfikuj_button.grid(row=3, column=1, pady=20, columnspan=1)
-        #
-        # self.historia_button = tk.Button(self.frame_strona1, text="Historia", command=self.pokaz_historie,
-        #                                  font=button_font, relief=button_relief, width=button_width, height=4)
-        # self.historia_button.grid(row=4, column=1, pady=20, columnspan=1)
 
 
         # utworzenie widoku z menu
         self.strona_menu()
         # utworzenie widoku z przeprowadzaniem cwiczen
         self.strona_sesji()
+        # utworzenie widoku z umozliwiajacego modyfikacje sesji
+        self.strona_modify()
 
         self.DabMove_image = None
         self.video_running = False
@@ -229,6 +203,34 @@ class AplicationPoseEstimation:
         rowButtons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
         rowButtons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
 
+    def strona_modify(self):
+        self.frame_strona3 = tk.Frame(self.master)
+        # self.frame_strona3.grid(row=0, column=0)
+
+        # Tworzenie nagłówka
+        self.label_modify = tk.Label(self.frame_strona3, text="Menu", font=("Helvetica", 40))
+        self.label_modify.grid(row=0, column=0, columnspan=3, pady=20)
+
+        # Tworzenie przycisków typu Checkbutton
+        self.check_var_list = []
+
+        # Uzyskaj listę wartości, pomijając wartość 'None'
+        values_list = [value for value in self.slownik.values() if value != 'None']
+
+        for i in range(1, len(values_list) + 1):
+        # for i, value in enumerate(self.slownik.values()):
+            check_var = tk.IntVar(value=1)  # Ustawienie wartości na 1, czyli zaznaczone
+            self.check_var_list.append(check_var)
+
+            check_button = tk.Checkbutton(self.frame_strona3, text=values_list[i-1], variable=check_var, font=("Helvetica", 16))
+            check_button.grid(row=i, column=0, pady=10, sticky='w')
+
+
+        # Dodaj przycisk pod checkboxami
+        self.button_modify = tk.Button(self.frame_strona3, text="Menu", command=self.ukryj_modify,
+                                          font=("Helvetica", 14), relief="groove", width=30, height=4)
+        self.button_modify.grid(row=11, column=0,  sticky='nsew')
+
     # module for upload video from directory
     def upload_video(self):
         file_path = filedialog.askopenfilename()
@@ -262,14 +264,20 @@ class AplicationPoseEstimation:
         self.frame_strona1.grid_forget()
         self.frame_strona2.grid(row=0, column=0, sticky="nsew")
 
-    def rozpocznij_sesje(self):
-        messagebox.showinfo("Rozpocznij sesję", "Sesja rozpoczęta!")
+    def ukryj_modify(self):
+        self.frame_strona3.grid_forget()
+        self.frame_strona1.grid_forget()
+        self.frame_strona1.grid(row=0, column=0)
 
     def modyfikuj_sesje(self):
-        messagebox.showinfo("Modyfikuj sesję", "Sesja modyfikowana!")
+        self.frame_strona3.grid_forget()
+        self.frame_strona1.grid_forget()
+        self.frame_strona3.grid(row=0, column=0)
 
     def pokaz_historie(self):
         messagebox.showinfo("Historia", "To jest historia aplikacji.")
+
+    # Lista pozycji do wykonania przez uzytkownika w czasie seesji
     def positions_to_do(self):
         list_of_positions = [0, 1]
         return list_of_positions
