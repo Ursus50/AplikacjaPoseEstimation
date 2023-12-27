@@ -99,6 +99,7 @@ class AplicationPoseEstimation:
         self.performed_exercises = []
         self.time_session_begin = 0
         self.session_begin = False
+        self.session_on = False
 
         self.video_running = False
 
@@ -234,50 +235,52 @@ class AplicationPoseEstimation:
         rowButtons.grid_columnconfigure(1, weight=1)
 
     def zakoncz_sesje(self):
-        """ Funckja odpowiedzialna za zakonczenie sejji ćwiczeń i zapis historii do pliku"""
+        """ Funckja odpowiedzialna za zakonczenie sesji ćwiczeń i zapis historii do pliku"""
 
-        if self.session_begin is True:
-            self.menu_button["state"] = "normal"
-            self.stop_button["state"] = "disable"
-            self.start_button["state"] = "normal"
-            self.start_button.config(text="Start")
-            self.zakoncz_button["state"] = "disable"
-            self.number_of_actual_position = -1
+        # if self.session_begin is True:
+        self.menu_button["state"] = "normal"
+        self.stop_button["state"] = "disable"
+        self.start_button["state"] = "normal"
+        self.start_button.config(text="Start")
+        self.zakoncz_button["state"] = "disable"
+        self.number_of_actual_position = -1
 
-            self.session_begin = False
-            self.video_running = False
-            # self.number_of_actual_position = -1
-            # nazwa pozycji
-            # Uzyskaj dostęp do etykiety
-            label = self.leftFrame.winfo_children()[0].winfo_children()[0]
-            # Zmiana tekstu w etykiecie
-            label.config(text="Nazwa pozycji")
+        self.session_begin = False
+        self.session_on = False
 
-            # numer pozycji
-            label = self.leftFrame.winfo_children()[2].winfo_children()[0]
-            # Zmiana tekstu w etykiecie
-            label.config(text="-/-")
+        # self.video_running = False
+        # self.number_of_actual_position = -1
+        # nazwa pozycji
+        # Uzyskaj dostęp do etykiety
+        label = self.leftFrame.winfo_children()[0].winfo_children()[0]
+        # Zmiana tekstu w etykiecie
+        label.config(text="Nazwa pozycji")
 
-            # czas pozycji
-            label = self.leftFrame.winfo_children()[3].winfo_children()[0]
-            # Zmiana tekstu w etykiecie
-            label.config(text="00:00")
-            # zapytanie czy zapisać historie przeprowadzonej sesji
-            answer = messagebox.askquestion("Pytanie", "Czy chcesz zapisać historię sesji?")
-            if answer == "yes":
-                czas_sesji = time.time() - self.time_session_begin
-                hours = int(czas_sesji // 3600)
-                minutes = int(czas_sesji // 60)
-                seconds = int(czas_sesji % 60)
+        # numer pozycji
+        label = self.leftFrame.winfo_children()[2].winfo_children()[0]
+        # Zmiana tekstu w etykiecie
+        label.config(text="-/-")
 
-                historia_cwiczen = {
-                    'liczba_cwiczen': len(self.performed_exercises),
-                    'liczba_wszystkich_cwiczen': self.number_positions_to_do,
-                    'lista_cwiczen': self.performed_exercises,
-                    'czas_sesji': f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-                }
-                self.zapisz_do_pliku(historia=historia_cwiczen)
-            self.performed_exercises.clear()
+        # czas pozycji
+        label = self.leftFrame.winfo_children()[3].winfo_children()[0]
+        # Zmiana tekstu w etykiecie
+        label.config(text="00:00")
+        # zapytanie czy zapisać historie przeprowadzonej sesji
+        answer = messagebox.askquestion("Pytanie", "Czy chcesz zapisać historię sesji?")
+        if answer == "yes":
+            czas_sesji = time.time() - self.time_session_begin
+            hours = int(czas_sesji // 3600)
+            minutes = int(czas_sesji // 60)
+            seconds = int(czas_sesji % 60)
+
+            historia_cwiczen = {
+                'liczba_cwiczen': len(self.performed_exercises),
+                'liczba_wszystkich_cwiczen': self.number_positions_to_do,
+                'lista_cwiczen': self.performed_exercises,
+                'czas_sesji': f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            }
+            self.zapisz_do_pliku(historia=historia_cwiczen)
+        self.performed_exercises.clear()
 
 
 
@@ -438,7 +441,7 @@ class AplicationPoseEstimation:
     def start_capture(self):
         # if(len(self.positions_to_do())):
 
-        self.video_running = True
+        # self.video_running = True
         self.start_button["state"] = "disabled"
         self.start_button.config(text="Wnów")
 
@@ -447,23 +450,30 @@ class AplicationPoseEstimation:
         self.zakoncz_button["state"] = "normal"
         self.menu_button["state"] = "disabled"
 
-        # Start a new thread to read and display video frames continuously
-        threading.Thread(target=self.video_detection).start()
+        # # Start a new thread to read and display video frames continuously
+        # threading.Thread(target=self.video_detection).start()
 
         if self.session_begin is False:
             self.time_session_begin = time.time()
             self.next_position()
             self.session_begin = True
 
+        self.session_on = True
+
 
     # module for stop or pause video
     def stop_capture(self):
-        self.video_running = False
+        # self.video_running = False
+        self.session_on = False
+
         self.start_button["state"] = "normal"
         self.stop_button["state"] = "disabled"
 
     def ukryj(self):
         """Przejscie z widoku sesji do menu"""
+
+        self.video_running = False
+
         self.frame_strona1.grid_forget()
         self.frame_strona2.grid_forget()
         self.frame_strona1.grid(row=0, column=0)
@@ -474,6 +484,11 @@ class AplicationPoseEstimation:
         if self.number_positions_to_do < 1:
             messagebox.showwarning("Ostrzeżenie", "Nie wybrano żadnej pozycji! Przejdż do \"Modyfikuj sesję\".")
         else:
+            self.video_running = True
+
+            # Start a new thread to read and display video frames continuously
+            threading.Thread(target=self.video_detection).start()
+
             self.frame_strona2.grid_forget()
             self.frame_strona1.grid_forget()
             self.frame_strona2.grid(row=0, column=0, sticky="nsew")
@@ -504,7 +519,7 @@ class AplicationPoseEstimation:
         self.frame_strona4.grid(row=0, column=0, sticky='n')
 
     def positions_to_do(self):
-        """Lista pozycji do wykonania przez uzytkownika w czasie seesji"""
+        """Lista pozycji do wykonania przez uzytkownika w czasie sesji"""
 
         # list_of_positions = []
         self.list_of_positions.clear()
@@ -704,13 +719,14 @@ class AplicationPoseEstimation:
 
             # Make a detection
             # results = self.holistic.process(image)
-            results = self.pose.process(image)
+
 
             try:
-
-                if results.pose_landmarks is not None:
-                    # Draw the detection points on the image
-                    annotated_image = self.draw_landmarks_on_image(annotated_image, results)
+                if self.session_on == True:
+                    results = self.pose.process(image)
+                    if results.pose_landmarks is not None:
+                        # Draw the detection points on the image
+                        annotated_image = self.draw_landmarks_on_image(annotated_image, results)
 
 
                 frame = cv2.resize(annotated_image, (self.camera_width, self.camera_height))
