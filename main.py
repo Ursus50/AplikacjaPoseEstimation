@@ -55,6 +55,8 @@ class AplicationPoseEstimation:
         # self.all_time = 5
         # self.flag = 0
 
+        # self.cap = cv2.VideoCapture(video_path)
+        self.video_path = video_path
         self.cap = cv2.VideoCapture(video_path)
 
         self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
@@ -431,11 +433,11 @@ class AplicationPoseEstimation:
 
 
 
-    # module for upload video from directory
-    def upload_video(self):
-        file_path = filedialog.askopenfilename()
-        if file_path:
-            self.cap = cv2.VideoCapture(file_path)
+    # # module for upload video from directory
+    # def upload_video(self):
+    #     file_path = filedialog.askopenfilename()
+    #     if file_path:
+    #         self.cap = cv2.VideoCapture(file_path)
 
     # module for start video
     def start_capture(self):
@@ -472,6 +474,7 @@ class AplicationPoseEstimation:
     def ukryj(self):
         """Przejscie z widoku sesji do menu"""
 
+
         self.video_running = False
 
         self.frame_strona1.grid_forget()
@@ -481,17 +484,28 @@ class AplicationPoseEstimation:
     def ukryj_menu(self):
         """Przejscie z widoku menu do sesji"""
 
-        if self.number_positions_to_do < 1:
-            messagebox.showwarning("Ostrzeżenie", "Nie wybrano żadnej pozycji! Przejdż do \"Modyfikuj sesję\".")
-        else:
-            self.video_running = True
+        try:
+            # if self.cap.isOpened():
+            ret, _ = self.cap.read()
 
-            # Start a new thread to read and display video frames continuously
-            threading.Thread(target=self.video_detection).start()
+            if self.number_positions_to_do < 1:
+                messagebox.showwarning("Ostrzeżenie", "Nie wybrano żadnej pozycji! Przejdż do \"Modyfikuj sesję\".")
+            elif ret is False:
+                answer = messagebox.askquestion("Błąd", "Nie wykryto kamery, czy spribować ją wykryć ponownie?")
+                if answer == "yes":
+                    self.cap = cv2.VideoCapture(self.video_path)
+            else:
+                self.video_running = True
+                # Start a new thread to read and display video frames continuously
+                threading.Thread(target=self.video_detection).start()
 
-            self.frame_strona2.grid_forget()
-            self.frame_strona1.grid_forget()
-            self.frame_strona2.grid(row=0, column=0, sticky="nsew")
+                self.frame_strona2.grid_forget()
+                self.frame_strona1.grid_forget()
+                self.frame_strona2.grid(row=0, column=0, sticky="nsew")
+
+        except IndexError as e:
+            print(f"Wystąpił błąd IndexError: {str(e)}")
+
 
     def ukryj_modify(self):
         """Przejscie z widoku modyfikacji sesji do menu"""
@@ -751,9 +765,17 @@ class AplicationPoseEstimation:
             except IndexError as e:
                print(f"Wystąpił błąd IndexError: {str(e)}")
 
+            if self.video_running:
+                self.master.after(10, self.video_detection)
+        else:
+            # Brak wykrycia kamery
+            messagebox.showerror("Błąd!", "Błąd odczytu kamery.")
+            self.zakoncz_sesje()
+            self.ukryj()
+
             # Exit if the user presses the 'q' key
-        if self.video_running:
-            self.master.after(10, self.video_detection)
+        # if self.video_running:
+        #     self.master.after(10, self.video_detection)
 
         # Release the webcam and close the window
 
