@@ -98,6 +98,7 @@ class AplicationPoseEstimation:
 
         self.performed_exercises = []
         self.time_session_begin = 0
+        self.session_begin = False
 
         self.video_running = False
 
@@ -233,6 +234,14 @@ class AplicationPoseEstimation:
 
     def zakoncz_sesje(self):
         """ Funckja odpowiedzialna za zakonczenie sejji ćwiczeń i zapis historii do pliku"""
+
+        if self.session_begin is True:
+            self.menu_button["state"] = "normal"
+            self.stop_button["state"] = "disable"
+            self.start_button["state"] = "normal"
+            self.zakoncz_button["state"] = "disable"
+            self.number_of_actual_position = -1
+            self.session_begin = False
 
         czas_sesji = time.time() - self.time_session_begin
         hours = int(czas_sesji // 3600)
@@ -402,11 +411,17 @@ class AplicationPoseEstimation:
         self.video_running = True
         self.start_button["state"] = "disabled"
         self.stop_button["state"] = "normal"
+
+        self.zakoncz_button["state"] = "normal"
+        self.menu_button["state"] = "disabled"
+
         # Start a new thread to read and display video frames continuously
         threading.Thread(target=self.video_detection).start()
 
-        self.time_session_begin = time.time()
-        self.next_position()
+        if self.session_begin is False:
+            self.time_session_begin = time.time()
+            self.next_position()
+            self.session_begin = True
 
 
     # module for stop or pause video
@@ -416,38 +431,44 @@ class AplicationPoseEstimation:
         self.stop_button["state"] = "disabled"
 
     def ukryj(self):
+        """Przejscie z widoku sesji do menu"""
         self.frame_strona1.grid_forget()
         self.frame_strona2.grid_forget()
         self.frame_strona1.grid(row=0, column=0)
 
     def ukryj_menu(self):
+        """Przejscie z widoku menu do sesji"""
         self.frame_strona2.grid_forget()
         self.frame_strona1.grid_forget()
         self.frame_strona2.grid(row=0, column=0, sticky="nsew")
 
     def ukryj_modify(self):
+        """Przejscie z widoku modyfikacji sesji do menu"""
         self.positions_to_do()
         self.frame_strona3.grid_forget()
         self.frame_strona1.grid_forget()
         self.frame_strona1.grid(row=0, column=0)
 
     def modyfikuj_sesje(self):
+        """Przejscie z widoku menu do modyfikacji sesji"""
         self.frame_strona3.grid_forget()
         self.frame_strona1.grid_forget()
         self.frame_strona3.grid(row=0, column=0)
 
     def ukryj_historie(self):
+        """Przejscie z widoku historii do menu"""
         self.frame_strona4.grid_forget()
         self.frame_strona1.grid_forget()
         self.frame_strona1.grid(row=0, column=0)
 
     def pokaz_historie(self):
+        """Przejscie z widoku menu do historii"""
         self.frame_strona4.grid_forget()
         self.frame_strona1.grid_forget()
         self.frame_strona4.grid(row=0, column=0, sticky='n')
 
-    # Lista pozycji do wykonania przez uzytkownika w czasie seesji
     def positions_to_do(self):
+        """Lista pozycji do wykonania przez uzytkownika w czasie seesji"""
 
         # list_of_positions = []
         self.list_of_positions.clear()
