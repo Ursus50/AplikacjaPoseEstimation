@@ -208,7 +208,7 @@ class AplicationPoseEstimation:
         self.start_button.grid(row=0, column=0, sticky="nsew")
         rowButtons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
 
-        self.stop_button = tk.Button(rowButtons, text="Stop", relief="groove", width=10, command=self.stop_capture)
+        self.stop_button = tk.Button(rowButtons, text="Wstrzymaj", relief="groove", width=10, command=self.stop_capture)
         self.stop_button.grid(row=0, column=1, sticky="nsew")
         self.stop_button["state"] = "disabled"
         rowButtons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
@@ -227,6 +227,7 @@ class AplicationPoseEstimation:
         # przycisk odpowiedzialny za zakończenie sesji cwiczen
         self.zakoncz_button = tk.Button(rowButtons, text="Zakończ sesję", relief="groove", width=10, command=self.zakoncz_sesje)
         self.zakoncz_button.grid(row=0, column=1, sticky="nsew")
+        self.zakoncz_button["state"] = "disable"
 
         rowButtons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
         rowButtons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
@@ -239,22 +240,47 @@ class AplicationPoseEstimation:
             self.menu_button["state"] = "normal"
             self.stop_button["state"] = "disable"
             self.start_button["state"] = "normal"
+            self.start_button.config(text="Start")
             self.zakoncz_button["state"] = "disable"
             self.number_of_actual_position = -1
+
             self.session_begin = False
+            self.video_running = False
+            # self.number_of_actual_position = -1
+            # nazwa pozycji
+            # Uzyskaj dostęp do etykiety
+            label = self.leftFrame.winfo_children()[0].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text="Nazwa pozycji")
 
-        czas_sesji = time.time() - self.time_session_begin
-        hours = int(czas_sesji // 3600)
-        minutes = int(czas_sesji // 60)
-        seconds = int(czas_sesji % 60)
+            # numer pozycji
+            label = self.leftFrame.winfo_children()[2].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text="-/-")
 
-        historia_cwiczen = {
-            'liczba_cwiczen': len(self.performed_exercises),
-            'liczba_wszystkich_cwiczen': self.number_positions_to_do,
-            'lista_cwiczen': self.performed_exercises,
-            'czas_sesji': f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        }
-        self.zapisz_do_pliku(historia=historia_cwiczen)
+            # czas pozycji
+            label = self.leftFrame.winfo_children()[3].winfo_children()[0]
+            # Zmiana tekstu w etykiecie
+            label.config(text="00:00")
+            # zapytanie czy zapisać historie przeprowadzonej sesji
+            answer = messagebox.askquestion("Pytanie", "Czy chcesz zapisać historię sesji?")
+            if answer == "yes":
+                czas_sesji = time.time() - self.time_session_begin
+                hours = int(czas_sesji // 3600)
+                minutes = int(czas_sesji // 60)
+                seconds = int(czas_sesji % 60)
+
+                historia_cwiczen = {
+                    'liczba_cwiczen': len(self.performed_exercises),
+                    'liczba_wszystkich_cwiczen': self.number_positions_to_do,
+                    'lista_cwiczen': self.performed_exercises,
+                    'czas_sesji': f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                }
+                self.zapisz_do_pliku(historia=historia_cwiczen)
+            self.performed_exercises.clear()
+
+
+
 
     def strona_modify(self):
         self.frame_strona3 = tk.Frame(self.master)
@@ -356,17 +382,18 @@ class AplicationPoseEstimation:
         # Tworzenie pełnej ścieżki
         folder_path = os.path.join(os.getcwd(), folder_name)
 
+
         # Sprawdź, czy folder istnieje
         if os.path.exists(folder_path) and os.path.isdir(folder_path):
             # Pobierz listę plików w folderze
             file_list = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
 
-            file_count = 0
+            file_list.reverse()
+            file_count = len(file_list)
 
             for file_name in file_list:
                 file_path = os.path.join(folder_path, file_name)
                 with open(file_path, 'r') as file:
-                    file_count += 1
                     data = json.load(file)
                     # Pobierz pozostałe informacje
                     liczba_cwiczen = data.get("liczba_cwiczen")
@@ -387,6 +414,7 @@ class AplicationPoseEstimation:
                     time = date_object.strftime(output_format)
 
                     self.tree.insert('', 'end', text=str(file_count), values=(time, czas_sesji, liczba_cwiczen, liczba_wszystkich_cwiczen))
+                    file_count -= 1
     def clear_tree_values(self):
         """Usuwa wszystkie wartosci z historii"""
         # Usuń wszystkie elementy (rzędy) z drzewa
@@ -408,8 +436,12 @@ class AplicationPoseEstimation:
 
     # module for start video
     def start_capture(self):
+        # if(len(self.positions_to_do())):
+
         self.video_running = True
         self.start_button["state"] = "disabled"
+        self.start_button.config(text="Wnów")
+
         self.stop_button["state"] = "normal"
 
         self.zakoncz_button["state"] = "normal"
@@ -438,9 +470,13 @@ class AplicationPoseEstimation:
 
     def ukryj_menu(self):
         """Przejscie z widoku menu do sesji"""
-        self.frame_strona2.grid_forget()
-        self.frame_strona1.grid_forget()
-        self.frame_strona2.grid(row=0, column=0, sticky="nsew")
+
+        if self.number_positions_to_do < 1:
+            messagebox.showwarning("Ostrzeżenie", "Nie wybrano żadnej pozycji! Przejdż do \"Modyfikuj sesję\".")
+        else:
+            self.frame_strona2.grid_forget()
+            self.frame_strona1.grid_forget()
+            self.frame_strona2.grid(row=0, column=0, sticky="nsew")
 
     def ukryj_modify(self):
         """Przejscie z widoku modyfikacji sesji do menu"""
@@ -503,7 +539,7 @@ class AplicationPoseEstimation:
         self.number_of_actual_position += 1
 
         # stwierdzenie faktu wykonania cwiczenia
-        if self.number_of_actual_position > 0:
+        if self.number_of_actual_position > 0 and self.number_of_actual_position <= self.number_positions_to_do:
             self.performed_exercises.append(self.name_of_actual_position)
 
         # sprawdzenie czy zostalo wykonane osatnie cwiczenie
@@ -526,23 +562,25 @@ class AplicationPoseEstimation:
             # Zmiana tekstu w etykiecie
             label.config(text="00:00")
         else:
-            self.stop_capture()
-            self.number_of_actual_position = -1
-            # nazwa pozycji
-            # Uzyskaj dostęp do etykiety
-            label = self.leftFrame.winfo_children()[0].winfo_children()[0]
-            # Zmiana tekstu w etykiecie
-            label.config(text="Nazwa pozycji")
+            # self.stop_capture()
+            self.zakoncz_sesje()
 
-            # numer pozycji
-            label = self.leftFrame.winfo_children()[2].winfo_children()[0]
-            # Zmiana tekstu w etykiecie
-            label.config(text="-/-")
-
-            # czas pozycji
-            label = self.leftFrame.winfo_children()[3].winfo_children()[0]
-            # Zmiana tekstu w etykiecie
-            label.config(text="00:00")
+            # # self.number_of_actual_position = -1
+            # # nazwa pozycji
+            # # Uzyskaj dostęp do etykiety
+            # label = self.leftFrame.winfo_children()[0].winfo_children()[0]
+            # # Zmiana tekstu w etykiecie
+            # label.config(text="Nazwa pozycji")
+            #
+            # # numer pozycji
+            # label = self.leftFrame.winfo_children()[2].winfo_children()[0]
+            # # Zmiana tekstu w etykiecie
+            # label.config(text="-/-")
+            #
+            # # czas pozycji
+            # label = self.leftFrame.winfo_children()[3].winfo_children()[0]
+            # # Zmiana tekstu w etykiecie
+            # label.config(text="00:00")
 
     def zapisz_do_pliku(self, historia):
         if not os.path.exists("historia"):
