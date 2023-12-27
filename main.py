@@ -491,7 +491,7 @@ class AplicationPoseEstimation:
             if self.number_positions_to_do < 1:
                 messagebox.showwarning("Ostrzeżenie", "Nie wybrano żadnej pozycji! Przejdż do \"Modyfikuj sesję\".")
             elif ret is False:
-                answer = messagebox.askquestion("Błąd", "Nie wykryto kamery, czy spribować ją wykryć ponownie?")
+                answer = messagebox.askquestion("Błąd", "Nie wykryto kamery, czy spróbować ją wykryć ponownie?")
                 if answer == "yes":
                     self.cap = cv2.VideoCapture(self.video_path)
             else:
