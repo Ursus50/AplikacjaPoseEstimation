@@ -136,6 +136,10 @@ class AplicationPoseEstimation:
         self.historia_button = tk.Button(self.frame_strona1, text="Historia", command=self.pokaz_historie,
                                          font=button_font, relief=button_relief, width=button_width, height=4)
         self.historia_button.grid(row=4, column=1, pady=20, columnspan=1)
+
+        self.shutdown_button = tk.Button(self.frame_strona1, text="Zakończ", command=self.shutdown,
+                                         font=button_font, relief=button_relief, width=button_width, height=4)
+        self.shutdown_button.grid(row=5, column=1, pady=20, columnspan=1)
     def strona_sesji(self):
         self.frame_strona2 = tk.Frame(self.master)
         # self.frame_strona2.grid(row=0, column=0, sticky="nsew")
@@ -436,7 +440,8 @@ class AplicationPoseEstimation:
         check_var = self.check_var_list[i]
         self.new_slownik[self.checkbuttons_list[i].cget("text")] = check_var.get()
 
-
+    def shutdown(self):
+        self.master.destroy()
 
     # # module for upload video from directory
     # def upload_video(self):
