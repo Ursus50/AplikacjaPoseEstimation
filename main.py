@@ -17,7 +17,7 @@ from mediapipe.framework.formats import landmark_pb2
 import time
 import os
 from datetime import datetime
-
+import simpleaudio as sa
 
 
 class AplicationPoseEstimation:
@@ -574,15 +574,19 @@ class AplicationPoseEstimation:
             self.next_position()
 
     def next_position(self):
+        """Funckja obslugujaca przejscie do nastepnej pozycji podczas sesji"""
+
         self.timer = 0
         self.number_of_actual_position += 1
 
         # stwierdzenie faktu wykonania cwiczenia
         if self.number_of_actual_position > 0 and self.number_of_actual_position <= self.number_positions_to_do:
             self.performed_exercises.append(self.name_of_actual_position)
+            self.play_sound()
 
         # sprawdzenie czy zostalo wykonane osatnie cwiczenie
         if self.number_of_actual_position <= self.number_positions_to_do:
+            self.play_sound()
             self.name_of_actual_position = self.slownik.get(self.list_of_positions[self.number_of_actual_position])
 
             # nazwa pozycji
@@ -652,6 +656,13 @@ class AplicationPoseEstimation:
             img = ImageTk.PhotoImage(empty_image)
             self.label_photo.configure(image=img)
             self.label_photo.image = img
+
+    def play_sound(self):
+        path_to_picture = os.path.join(f"dzwieki", f"signal.wav")
+        folder_path = os.path.join(os.getcwd(), path_to_picture)
+        if os.path.exists(folder_path):
+            wave_obj = sa.WaveObject.from_wave_file(folder_path)  # Wymień na nazwę pliku dźwiękowego
+            wave_obj.play()
 
     def zapisz_do_pliku(self, historia):
         if not os.path.exists("historia"):
