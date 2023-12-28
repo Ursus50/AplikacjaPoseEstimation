@@ -22,6 +22,8 @@ from datetime import datetime
 
 class AplicationPoseEstimation:
     def __init__(self, master, video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
+        self.label_photo = None
+        self.img = None
         self.mp_drawing = mp.solutions.drawing_utils
         # self.mp_holistic = mp.solutions.holistic
         self.mp_pose = mp.solutions.pose
@@ -180,12 +182,13 @@ class AplicationPoseEstimation:
 
         row = self.leftFrame.winfo_children()[1]
 
-        # Create an object of tkinter ImageTk
-        self.img = ImageTk.PhotoImage(Image.open("position.png"))
+        # # Create an object of tkinter ImageTk
+        # self.img = ImageTk.PhotoImage(Image.open("position.png"))
 
         # Create a Label Widget to display the text or Image
-        label = tk.Label(row, image=self.img)
-        label.pack()
+        self.label_photo = tk.Label(row, image=self.img)
+        self.label_photo.pack()
+        self.change_photo("None")
 
 
         # Label z liczba pozycji
@@ -267,6 +270,8 @@ class AplicationPoseEstimation:
         label = self.leftFrame.winfo_children()[3].winfo_children()[0]
         # Zmiana tekstu w etykiecie
         label.config(text="00:00")
+        # Zmiana obrazka na bazowy
+        self.change_photo("None")
         # zapytanie czy zapisać historie przeprowadzonej sesji
         answer = messagebox.askquestion("Pytanie", "Czy chcesz zapisać historię sesji?")
         if answer == "yes":
@@ -590,6 +595,23 @@ class AplicationPoseEstimation:
             label = self.leftFrame.winfo_children()[3].winfo_children()[0]
             # Zmiana tekstu w etykiecie
             label.config(text="00:00")
+
+            # Zmiana wyswietlanego obrazka z popzycja
+            self.change_photo(self.name_of_actual_position)
+            # Nazwa folderu
+            # path_to_picture = f"{self.name_of_actual_position}.png"
+            # path_to_picture = os.path.join(f"pozycje", f"{self.name_of_actual_position}.png")
+            # # Tworzenie pełnej ścieżki
+            # folder_path = os.path.join(os.getcwd(), path_to_picture)
+            # if os.path.exists(folder_path):
+            #     img = ImageTk.PhotoImage(Image.open(folder_path))
+            #     self.label_photo.configure(image=img)
+            #     self.label_photo.image = img
+            # else:
+            #     empty_image = Image.new("RGB", (469, 295), "white")
+            #     img = ImageTk.PhotoImage(empty_image)
+            #     self.label_photo.configure(image=img)
+            #     self.label_photo.image = img
         else:
             # self.stop_capture()
             self.zakoncz_sesje()
@@ -610,6 +632,21 @@ class AplicationPoseEstimation:
             # label = self.leftFrame.winfo_children()[3].winfo_children()[0]
             # # Zmiana tekstu w etykiecie
             # label.config(text="00:00")
+
+    def change_photo(self, name_of_photo):
+        """Funckja zmienia wyswietlany obrazek w widoku sesji. Parametr wejciowy: name_of_photo - nazwa pliku ze zdjeciem"""
+        path_to_picture = os.path.join(f"pozycje", f"{name_of_photo}.png")
+        # Tworzenie pełnej ścieżki
+        folder_path = os.path.join(os.getcwd(), path_to_picture)
+        if os.path.exists(folder_path):
+            img = ImageTk.PhotoImage(Image.open(folder_path))
+            self.label_photo.configure(image=img)
+            self.label_photo.image = img
+        else:
+            empty_image = Image.new("RGB", (469, 295), "white")
+            img = ImageTk.PhotoImage(empty_image)
+            self.label_photo.configure(image=img)
+            self.label_photo.image = img
 
     def zapisz_do_pliku(self, historia):
         if not os.path.exists("historia"):
