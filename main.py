@@ -31,7 +31,8 @@ class AplicationPoseEstimation:
         self.master = master
 
         # nazwa modelu do klasyfikacji pozycji
-        self.model = load_model(r'C:\Inzynierka\Programy\Nauka\perc.hdf5')
+        # self.model = load_model(r'C:\Inzynierka\Programy\Nauka\perc.hdf5')
+        self.model = self.get_model(f"perc.hdf5")
         self.prog = 0.50
 
         with open('slownik_etykiet.json', 'r') as json_file:
@@ -678,6 +679,13 @@ class AplicationPoseEstimation:
 
         # Uaktualnienie danych w historii
         self.dodaj_dane()
+
+    def get_model(self, model_name):
+        path_to_picture = os.path.join(f"modele", model_name)
+        model_path = os.path.join(os.getcwd(), path_to_picture)
+        model = load_model(model_path)
+        return model
+
 
     def get_max_value_index(self, vector):
         max_index = np.argmax(vector)
