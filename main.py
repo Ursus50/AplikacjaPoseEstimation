@@ -16,19 +16,31 @@ import simpleaudio as sa
 
 class AplicationPoseEstimation:
     def __init__(self, master, video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
-        self.menu_view_frame = None
-        self.history_view_button = None
-        self.modify_view_button = None
-        self.session_view_button = None
-        self.photo_label = None
-        self.img = None
-        self.mp_drawing = mp.solutions.drawing_utils
-        self.mp_pose = mp.solutions.pose
 
         self.master = master
+        self.video_path = video_path
+        self.cap = cv2.VideoCapture(video_path)
+
+        self.menu_view_frame = None
+        self.modify_view_frame = None
+        self.history_view_frame = None
+
+        self.session_left_frame = None
+        self.photo_label = None
+        self.pause_session_button = None
+        self.start_session_button = None
+        self.camera_label = None
+
+        self.checkbuttons_list = None
+        self.check_var_list = None
+
+        # self.img = None
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_pose = mp.solutions.pose
+        self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
+                                      min_tracking_confidence=min_tracking_confidence)
 
         # nazwa modelu do klasyfikacji pozycji
-        # self.model = load_model(r'C:\Inzynierka\Programy\Nauka\perc.hdf5')
         self.model = self.get_model(f"perc.hdf5")
         self.treshold = 0.50
 
@@ -39,36 +51,19 @@ class AplicationPoseEstimation:
         print(self.dictionary)
         print(type(self.dictionary))
         self.dictionary = {val: key for key, val in self.dictionary.items()}
-
         self.new_dictionary = {}
 
-        self.video_path = video_path
-        self.cap = cv2.VideoCapture(video_path)
-
-        self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
-                                      min_tracking_confidence=min_tracking_confidence)
-
+        # Konfiguracja głównego okna
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
         self.app_width = 4 * screen_width // 5
         self.app_height = 4 * screen_height // 5
-
         self.master.geometry(f"{self.app_width}x{self.app_height}")
 
-        # Konfiguracja głównego okna
         master.grid_rowconfigure(0, weight=1)
         master.grid_columnconfigure(0, weight=1)
 
         self.list_of_positions = []
-
-        # utworzenie widoku z menu
-        self.menu_view()
-        # utworzenie widoku z przeprowadzaniem cwiczen
-        self.session_view()
-        # utworzenie widoku umozliwiajacego modyfikacje sesji
-        self.modify_view()
-        # utworzenie widoku umozliwiajacego podglad historii
-        self.history_view()
 
         self.name_of_actual_position = None
         self.number_of_actual_position = -1
@@ -91,40 +86,49 @@ class AplicationPoseEstimation:
 
         self.video_running = False
 
+        # utworzenie widoku z menu
+        self.menu_view()
+        # utworzenie widoku z przeprowadzaniem cwiczen
+        self.session_view()
+        # utworzenie widoku umozliwiajacego modyfikacje sesji
+        self.modify_view()
+        # utworzenie widoku umozliwiajacego podglad historii
+        self.history_view()
+
     def menu_view(self):
         # Tworzenie ramki
         self.menu_view_frame = tk.Frame(self.master)
         self.menu_view_frame.grid(row=0, column=0)
 
         # Tworzenie nagłówka
-        self.label = tk.Label(self.menu_view_frame, text="Menu", font=("Helvetica", 40))
-        self.label.grid(row=0, column=0, columnspan=3, pady=20)
+        label = tk.Label(self.menu_view_frame, text="Menu", font=("Helvetica", 40))
+        label.grid(row=0, column=0, columnspan=3, pady=20)
 
         # Tworzenie etykiety
-        self.desc_menu_label = tk.Label(self.menu_view_frame, text="To jest opis aplikacji.", font=("Helvetica", 12))
-        self.desc_menu_label.grid(row=1, column=1, pady=10, columnspan=1)
+        desc_menu_label = tk.Label(self.menu_view_frame, text="To jest opis aplikacji.", font=("Helvetica", 12))
+        desc_menu_label.grid(row=1, column=1, pady=10, columnspan=1)
 
         # Tworzenie przycisków
         button_font = ("Helvetica", 14)
         button_relief = "groove"
         button_width = 30
 
-        self.session_view_button = tk.Button(self.menu_view_frame, text="Rozpocznij sesję",
+        session_view_button = tk.Button(self.menu_view_frame, text="Rozpocznij sesję",
                                              command=self.show_session_view,
                                              font=button_font, relief=button_relief, width=button_width, height=4)
-        self.session_view_button.grid(row=2, column=1, pady=20, columnspan=1)
+        session_view_button.grid(row=2, column=1, pady=20, columnspan=1)
 
-        self.modify_view_button = tk.Button(self.menu_view_frame, text="Modyfikuj sesję", command=self.show_modify_view,
+        modify_view_button = tk.Button(self.menu_view_frame, text="Modyfikuj sesję", command=self.show_modify_view,
                                             font=button_font, relief=button_relief, width=button_width, height=4)
-        self.modify_view_button.grid(row=3, column=1, pady=20, columnspan=1)
+        modify_view_button.grid(row=3, column=1, pady=20, columnspan=1)
 
-        self.history_view_button = tk.Button(self.menu_view_frame, text="Historia", command=self.show_history_view,
+        history_view_button = tk.Button(self.menu_view_frame, text="Historia", command=self.show_history_view,
                                              font=button_font, relief=button_relief, width=button_width, height=4)
-        self.history_view_button.grid(row=4, column=1, pady=20, columnspan=1)
+        history_view_button.grid(row=4, column=1, pady=20, columnspan=1)
 
-        self.shutdown_button = tk.Button(self.menu_view_frame, text="Zakończ", command=self.shutdown,
+        shutdown_button = tk.Button(self.menu_view_frame, text="Zakończ", command=self.shutdown,
                                          font=button_font, relief=button_relief, width=button_width, height=4)
-        self.shutdown_button.grid(row=5, column=1, pady=20, columnspan=1)
+        shutdown_button.grid(row=5, column=1, pady=20, columnspan=1)
 
     def session_view(self):
         self.session_view_frame = tk.Frame(self.master)
@@ -140,14 +144,14 @@ class AplicationPoseEstimation:
         self.session_left_frame.grid(row=0, column=0, sticky="nsew")
 
         # prawa czesc
-        self.session_right_frame = tk.Frame(self.session_view_frame, bg="lightgreen")
-        self.session_right_frame.grid(row=0, column=1, sticky="nsew")
+        session_right_frame = tk.Frame(self.session_view_frame, bg="lightgreen")
+        session_right_frame.grid(row=0, column=1, sticky="nsew")
 
         # Umieszczenie obrazu z kamery po środku prawego okna
-        self.labelCamera = tk.Label(self.session_right_frame, text="Testowy", bg='red')
-        self.labelCamera.grid(row=0, column=0)
-        self.session_right_frame.grid_rowconfigure(0, weight=1)
-        self.session_right_frame.grid_columnconfigure(0, weight=1)
+        self.camera_label = tk.Label(session_right_frame, text="Testowy", bg='red')
+        self.camera_label.grid(row=0, column=0)
+        session_right_frame.grid_rowconfigure(0, weight=1)
+        session_right_frame.grid_columnconfigure(0, weight=1)
 
         # Obraz z kamery
         self.camera_width = 9 * self.app_width // 10
@@ -172,11 +176,8 @@ class AplicationPoseEstimation:
 
         row = self.session_left_frame.winfo_children()[1]
 
-        # # Create an object of tkinter ImageTk
-        # self.img = ImageTk.PhotoImage(Image.open("position.png"))
-
         # Create a Label Widget to display the text or Image
-        self.photo_label = tk.Label(row, image=self.img)
+        self.photo_label = tk.Label(row) #, image=self.img
         self.photo_label.pack()
         self.change_photo("None")
 
@@ -289,8 +290,8 @@ class AplicationPoseEstimation:
         # self.modify_view_frame.grid(row=0, column=0)
 
         # Tworzenie nagłówka
-        self.label_modify = tk.Label(self.modify_view_frame, text="Modyfikuj sesję ćwiczeń", font=("Helvetica", 40))
-        self.label_modify.grid(row=0, column=0, columnspan=3, pady=20)
+        label_modify = tk.Label(self.modify_view_frame, text="Modyfikuj sesję ćwiczeń", font=("Helvetica", 40))
+        label_modify.grid(row=0, column=0, columnspan=3, pady=20)
 
         # Tworzenie przycisków typu Checkbutton
         self.check_var_list = []
@@ -313,18 +314,17 @@ class AplicationPoseEstimation:
             self.new_dictionary[values_list[i - 1]] = self.check_var_list[i].get()
 
         # Dodaj przycisk pod checkboxami
-        self.back_to_menu_modify_button = tk.Button(self.modify_view_frame, text="Menu",
-                                                    command=self.back_to_menu_modify,
-                                                    font=("Helvetica", 14), relief="groove", width=40, height=4)
-        self.back_to_menu_modify_button.grid(row=len(values_list) + 2, column=0, sticky='e')
+        back_to_menu_modify_button = tk.Button(self.modify_view_frame, text="Menu", command=self.back_to_menu_modify, 
+                                               font=("Helvetica", 14), relief="groove", width=40, height=4)
+        back_to_menu_modify_button.grid(row=len(values_list) + 2, column=0, sticky='e')
 
     def history_view(self):
         self.history_view_frame = tk.Frame(self.master)
         # self.history_view_frame.grid(row=0, column=0, sticky='n')
 
         # Tworzenie nagłówka
-        self.label_history = tk.Label(self.history_view_frame, text="Historia ćwiczeń", font=("Helvetica", 40))
-        self.label_history.grid(row=0, column=0, columnspan=3, pady=30, sticky='s')
+        label_history = tk.Label(self.history_view_frame, text="Historia ćwiczeń", font=("Helvetica", 40))
+        label_history.grid(row=0, column=0, columnspan=3, pady=30, sticky='s')
 
         # Utwórz Treeview z nagłówkami kolumn
         # self.tree = ttk.Treeview(self.history_view_frame, columns=('ID', 'Imię', 'Nazwisko'), height=20)
@@ -362,14 +362,10 @@ class AplicationPoseEstimation:
 
         self.history_tree.grid(row=1, column=0, columnspan=3, sticky='nsew')
 
-        # # Dodaj przycisk powrotu do menu
-        # self.btn_powrot = tk.Button(self.history_view_frame, text="Powrót do menu", command=self.powrot_do_menu)
-        # self.btn_powrot.grid(row=2, column=0, columnspan=3, pady=10)
-
         # Dodaj przycisk pod checkboxami
-        self.button_history = tk.Button(self.history_view_frame, text="Menu", command=self.back_to_menu_history,
+        back_to_menu_history_button = tk.Button(self.history_view_frame, text="Menu", command=self.back_to_menu_history,
                                         font=("Helvetica", 14), relief="groove", width=40, height=4)
-        self.button_history.grid(row=2, column=0, columnspan=3, pady=60)
+        back_to_menu_history_button.grid(row=2, column=0, columnspan=3, pady=60)
 
         # Konfiguracja rozszerzania kolumn i wierszy
         self.history_view_frame.grid_columnconfigure(0, weight=1)
@@ -414,8 +410,9 @@ class AplicationPoseEstimation:
                     # Formatowanie daty do żądanego formatu
                     time = date_object.strftime(output_format)
 
-                    self.history_tree.insert('', 'end', text=str(file_count), values=(
-                    time, time_of_session, number_of_exercises, number_of_planed_exercises))
+                    self.history_tree.insert('', 'end', text=str(file_count),
+                                             values=(time, time_of_session, number_of_exercises,
+                                                     number_of_planed_exercises))
                     file_count -= 1
 
     def clear_history_tree_values(self):
@@ -482,7 +479,6 @@ class AplicationPoseEstimation:
         """Przejscie z widoku menu do sesji"""
 
         try:
-            # if self.cap.isOpened():
             ret, _ = self.cap.read()
 
             if self.number_positions_to_do < 1:
@@ -531,7 +527,6 @@ class AplicationPoseEstimation:
     def positions_to_do(self):
         """Lista pozycji do wykonania przez uzytkownika w czasie sesji"""
 
-        # list_of_positions = []
         self.list_of_positions.clear()
 
         for key, value in self.new_dictionary.items():
@@ -541,10 +536,6 @@ class AplicationPoseEstimation:
                         self.list_of_positions.append(key2)
 
         self.number_positions_to_do = len(self.list_of_positions)
-        # self.list_of_positions.append(0)
-        # self.list_of_positions.append(1)
-        # # list_of_positions = [0, 1]
-        # return list_of_positions
 
     def update_timer(self):
         # Zmiana tekstu w etykiecie
@@ -766,9 +757,9 @@ class AplicationPoseEstimation:
                 frame = frame[top:top + min_dim,
                         left:left + 4 * min_dim // 3]  # wyswietlany obraz kamery ma proporcje 4:3
 
-                self.photo = ImageTk.PhotoImage(Image.fromarray(frame))
-                self.labelCamera.configure(image=self.photo)
-                self.labelCamera.image = self.photo  # Aktualizacja referencji do obrazu w etykiecie
+                photo = ImageTk.PhotoImage(Image.fromarray(frame))
+                self.camera_label.configure(image=photo)
+                self.camera_label.image = photo  # Aktualizacja referencji do obrazu w etykiecie
 
 
 
@@ -790,7 +781,7 @@ class AplicationPoseEstimation:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = AplicationPoseEstimation(root, 0)
+    app = AplicationPoseEstimation(master=root, video_path=0)
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Butterfly.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Chair.mp4')
