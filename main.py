@@ -16,10 +16,13 @@ import simpleaudio as sa
 
 class AplicationPoseEstimation:
     def __init__(self, master, video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
+        self.menu_view_frame = None
+        self.history_view_button = None
+        self.modify_view_button = None
+        self.session_view_button = None
         self.photo_label = None
         self.img = None
         self.mp_drawing = mp.solutions.drawing_utils
-        # self.mp_holistic = mp.solutions.holistic
         self.mp_pose = mp.solutions.pose
 
         self.master = master
@@ -39,17 +42,16 @@ class AplicationPoseEstimation:
 
         self.new_dictionary = {}
 
-
         self.video_path = video_path
         self.cap = cv2.VideoCapture(video_path)
 
         self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
-                                                  min_tracking_confidence=min_tracking_confidence)
+                                      min_tracking_confidence=min_tracking_confidence)
 
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
-        self.app_width = 4*screen_width//5
-        self.app_height = 4*screen_height//5
+        self.app_width = 4 * screen_width // 5
+        self.app_height = 4 * screen_height // 5
 
         self.master.geometry(f"{self.app_width}x{self.app_height}")
 
@@ -107,21 +109,23 @@ class AplicationPoseEstimation:
         button_relief = "groove"
         button_width = 30
 
-        self.session_view_button = tk.Button(self.menu_view_frame, text="Rozpocznij sesję", command=self.show_session_view,
-                                           font=button_font, relief=button_relief, width=button_width, height=4)
+        self.session_view_button = tk.Button(self.menu_view_frame, text="Rozpocznij sesję",
+                                             command=self.show_session_view,
+                                             font=button_font, relief=button_relief, width=button_width, height=4)
         self.session_view_button.grid(row=2, column=1, pady=20, columnspan=1)
 
         self.modify_view_button = tk.Button(self.menu_view_frame, text="Modyfikuj sesję", command=self.show_modify_view,
-                                          font=button_font, relief=button_relief, width=button_width, height=4)
+                                            font=button_font, relief=button_relief, width=button_width, height=4)
         self.modify_view_button.grid(row=3, column=1, pady=20, columnspan=1)
 
         self.history_view_button = tk.Button(self.menu_view_frame, text="Historia", command=self.show_history_view,
-                                         font=button_font, relief=button_relief, width=button_width, height=4)
+                                             font=button_font, relief=button_relief, width=button_width, height=4)
         self.history_view_button.grid(row=4, column=1, pady=20, columnspan=1)
 
         self.shutdown_button = tk.Button(self.menu_view_frame, text="Zakończ", command=self.shutdown,
                                          font=button_font, relief=button_relief, width=button_width, height=4)
         self.shutdown_button.grid(row=5, column=1, pady=20, columnspan=1)
+
     def session_view(self):
         self.session_view_frame = tk.Frame(self.master)
         # self.session_view_frame.grid(row=0, column=0, sticky="nsew")
@@ -176,7 +180,6 @@ class AplicationPoseEstimation:
         self.photo_label.pack()
         self.change_photo("None")
 
-
         # Label z liczba pozycji
         row = self.session_left_frame.winfo_children()[2]
         label = tk.Label(row, text="-/-", font=("Helvetica", 50, 'bold'), fg='blue', bg='yellow')
@@ -196,14 +199,17 @@ class AplicationPoseEstimation:
         row_buttons = tk.Frame(row_buttons, bg="white")
         row_buttons.pack(fill="both", expand=True)
 
-        self.start_session_button = tk.Button(row_buttons, text="Start", relief="groove", width=10, command=self.start_capture)
+        self.start_session_button = tk.Button(row_buttons, text="Start", relief="groove", width=10,
+                                              command=self.start_capture)
         self.start_session_button.grid(row=0, column=0, sticky="nsew")
         row_buttons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
 
-        self.pause_session_button = tk.Button(row_buttons, text="Wstrzymaj", relief="groove", width=10, command=self.stop_capture)
+        self.pause_session_button = tk.Button(row_buttons, text="Wstrzymaj", relief="groove", width=10,
+                                              command=self.stop_capture)
         self.pause_session_button.grid(row=0, column=1, sticky="nsew")
         self.pause_session_button["state"] = "disabled"
-        row_buttons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
+        row_buttons.grid_columnconfigure(0,
+                                         weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
 
         row_buttons.grid_columnconfigure(1, weight=1)
         row_buttons.grid_rowconfigure(0, weight=1)
@@ -213,16 +219,19 @@ class AplicationPoseEstimation:
         row_buttons.pack(fill="both", expand=True)
 
         # przycisk odpowiedzialny za przejscie do menu
-        self.back_to_menu_session_button = tk.Button(row_buttons, text="Menu", relief="groove", width=10, command=self.back_to_menu_session)
+        self.back_to_menu_session_button = tk.Button(row_buttons, text="Menu", relief="groove", width=10,
+                                                     command=self.back_to_menu_session)
         self.back_to_menu_session_button.grid(row=0, column=0, sticky="nsew")
 
         # przycisk odpowiedzialny za zakończenie sesji cwiczen
-        self.end_seesion_button = tk.Button(row_buttons, text="Zakończ sesję", relief="groove", width=10, command=self.end_session)
+        self.end_seesion_button = tk.Button(row_buttons, text="Zakończ sesję", relief="groove", width=10,
+                                            command=self.end_session)
         self.end_seesion_button.grid(row=0, column=1, sticky="nsew")
         self.end_seesion_button["state"] = "disable"
 
         row_buttons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
-        row_buttons.grid_columnconfigure(0, weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
+        row_buttons.grid_columnconfigure(0,
+                                         weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
         row_buttons.grid_columnconfigure(1, weight=1)
 
     def end_session(self):
@@ -275,9 +284,6 @@ class AplicationPoseEstimation:
             self.safe_to_file_history(history=exercise_history)
         self.performed_exercises.clear()
 
-
-
-
     def modify_view(self):
         self.modify_view_frame = tk.Frame(self.master)
         # self.modify_view_frame.grid(row=0, column=0)
@@ -302,16 +308,15 @@ class AplicationPoseEstimation:
             check_button = tk.Checkbutton(self.modify_view_frame, text=values_list[i], variable=check_var,
                                           font=("Helvetica", 16), command=lambda i=i: self.update_selected_options(i))
             self.checkbuttons_list.append(check_button)
-            check_button.grid(row=i+1, column=0, pady=10, sticky='w')
+            check_button.grid(row=i + 1, column=0, pady=10, sticky='w')
 
-            self.new_dictionary[values_list[i-1]] = self.check_var_list[i].get()
-
+            self.new_dictionary[values_list[i - 1]] = self.check_var_list[i].get()
 
         # Dodaj przycisk pod checkboxami
-        self.back_to_menu_modify_button = tk.Button(self.modify_view_frame, text="Menu", command=self.back_to_menu_modify,
-                                          font=("Helvetica", 14), relief="groove", width=40, height=4)
-        self.back_to_menu_modify_button.grid(row=len(values_list)+2, column=0,  sticky='e')
-
+        self.back_to_menu_modify_button = tk.Button(self.modify_view_frame, text="Menu",
+                                                    command=self.back_to_menu_modify,
+                                                    font=("Helvetica", 14), relief="groove", width=40, height=4)
+        self.back_to_menu_modify_button.grid(row=len(values_list) + 2, column=0, sticky='e')
 
     def history_view(self):
         self.history_view_frame = tk.Frame(self.master)
@@ -323,8 +328,9 @@ class AplicationPoseEstimation:
 
         # Utwórz Treeview z nagłówkami kolumn
         # self.tree = ttk.Treeview(self.history_view_frame, columns=('ID', 'Imię', 'Nazwisko'), height=20)
-        self.history_tree = ttk.Treeview(self.history_view_frame, columns=('Data', 'Czas trwania sesji', 'Liczba wykonanych pozycji',
-                                                              'Liczba zaplanowanych pozycji'), height=20)
+        self.history_tree = ttk.Treeview(self.history_view_frame,
+                                         columns=('Data', 'Czas trwania sesji', 'Liczba wykonanych pozycji',
+                                                  'Liczba zaplanowanych pozycji'), height=20)
 
         # Dodaj nagłówki kolumn
         self.history_tree.heading('#0', text='Nr')
@@ -334,11 +340,11 @@ class AplicationPoseEstimation:
         self.history_tree.heading('Liczba zaplanowanych pozycji', text='Liczba zaplanowanych pozycji')
         # self.history_tree.heading('Lista wykonanych pozcyji', text='Lista wykonanych pozcyji')
 
-
         # Dostosuj styl tekstu w Treeview
         style = ttk.Style()
         style.configure('Treeview.Heading', font=('Helvetica', 12), relief='solid')  # Ustaw nagłówki z większą czcionką
-        style.configure('Treeview', font=('Helvetica', 14), rowheight=30, relief='solid')  # Ustaw tekst komórek z większą czcionką
+        style.configure('Treeview', font=('Helvetica', 14), rowheight=30,
+                        relief='solid')  # Ustaw tekst komórek z większą czcionką
 
         self.history_tree.column('#0', width=50, anchor='center')  # Ustaw szerokość kolumny
         self.history_tree.column('Data', width=200, anchor='center')  # Ustaw szerokość kolumny
@@ -362,8 +368,8 @@ class AplicationPoseEstimation:
 
         # Dodaj przycisk pod checkboxami
         self.button_history = tk.Button(self.history_view_frame, text="Menu", command=self.back_to_menu_history,
-                                          font=("Helvetica", 14), relief="groove", width=40, height=4)
-        self.button_history.grid(row=2, column=0,  columnspan=3, pady=60)
+                                        font=("Helvetica", 14), relief="groove", width=40, height=4)
+        self.button_history.grid(row=2, column=0, columnspan=3, pady=60)
 
         # Konfiguracja rozszerzania kolumn i wierszy
         self.history_view_frame.grid_columnconfigure(0, weight=1)
@@ -377,7 +383,6 @@ class AplicationPoseEstimation:
         folder_name = "historia"
         # Tworzenie pełnej ścieżki
         folder_path = os.path.join(os.getcwd(), folder_name)
-
 
         # Sprawdź, czy folder istnieje
         if os.path.exists(folder_path) and os.path.isdir(folder_path):
@@ -409,8 +414,10 @@ class AplicationPoseEstimation:
                     # Formatowanie daty do żądanego formatu
                     time = date_object.strftime(output_format)
 
-                    self.history_tree.insert('', 'end', text=str(file_count), values=(time, time_of_session, number_of_exercises, number_of_planed_exercises))
+                    self.history_tree.insert('', 'end', text=str(file_count), values=(
+                    time, time_of_session, number_of_exercises, number_of_planed_exercises))
                     file_count -= 1
+
     def clear_history_tree_values(self):
         """Usuwa wszystkie wartosci z historii"""
         # Usuń wszystkie elementy (rzędy) z drzewa
@@ -454,7 +461,6 @@ class AplicationPoseEstimation:
 
         self.session_on = True
 
-
     # module for stop or pause video
     def stop_capture(self):
         # self.video_running = False
@@ -465,7 +471,6 @@ class AplicationPoseEstimation:
 
     def back_to_menu_session(self):
         """Przejscie z widoku sesji do menu"""
-
 
         self.video_running = False
 
@@ -497,7 +502,6 @@ class AplicationPoseEstimation:
 
         except IndexError as e:
             print(f"Wystąpił błąd IndexError: {str(e)}")
-
 
     def back_to_menu_modify(self):
         """Przejscie z widoku modyfikacji modify do menu"""
@@ -593,7 +597,6 @@ class AplicationPoseEstimation:
         else:
             self.end_session()
 
-
     def change_photo(self, name_of_photo):
         """Funckja zmienia wyswietlany obrazek w widoku sesji. Parametr wejciowy: name_of_photo - nazwa pliku ze zdjeciem"""
         path_to_picture = os.path.join(f"pozycje", f"{name_of_photo}.png")
@@ -637,7 +640,6 @@ class AplicationPoseEstimation:
         model = load_model(model_path)
         return model
 
-
     def get_max_value_index(self, vector):
         max_index = np.argmax(vector)
         print(max_index)
@@ -657,7 +659,7 @@ class AplicationPoseEstimation:
         print(name)
         return name
 
-    def flatten_landmarks(self,pose_landmarks_list):
+    def flatten_landmarks(self, pose_landmarks_list):
         # Spłaszczanie listy do jednego ciągu liczb
 
         flattened_landmarks = [val for sublist in pose_landmarks_list for point in sublist for val in
@@ -708,8 +710,6 @@ class AplicationPoseEstimation:
         flattened_landmarks_np = expanded_data
         '''
 
-
-
         annotated_image = np.copy(rgb_image)
         if pose_landmarks_list:
             predictions = self.model.predict(flattened_landmarks_np)
@@ -730,10 +730,10 @@ class AplicationPoseEstimation:
             elif self.flag == 1:
                 self.flag = 0
 
-
         self.mp_drawing.draw_landmarks(annotated_image, detection_result.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
 
         return annotated_image
+
     def video_detection(self):
         ret, frame = self.cap.read()
 
@@ -752,7 +752,6 @@ class AplicationPoseEstimation:
                     if results.pose_landmarks is not None:
                         # Draw the detection points on the image
                         annotated_image = self.draw_landmarks_on_image(annotated_image, results)
-
 
                 frame = cv2.resize(annotated_image, (self.camera_width, self.camera_height))
 
@@ -774,7 +773,7 @@ class AplicationPoseEstimation:
 
 
             except IndexError as e:
-               print(f"Wystąpił błąd IndexError: {str(e)}")
+                print(f"Wystąpił błąd IndexError: {str(e)}")
 
             if self.video_running:
                 self.master.after(10, self.video_detection)
@@ -784,21 +783,9 @@ class AplicationPoseEstimation:
             self.end_session()
             self.back_to_menu_session()
 
-            # Exit if the user presses the 'q' key
-        # if self.video_running:
-        #     self.master.after(10, self.video_detection)
-
-        # Release the webcam and close the window
-
-    # def next_positions(self):
-    #     for pos in self.positions_to_do():
-    #         self.video_detection()
-
-
     def __del__(self):
         self.cap.release()
         cv2.destroyAllWindows()
-
 
 
 if __name__ == "__main__":
