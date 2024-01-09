@@ -29,6 +29,7 @@ class AplicationPoseEstimation:
     def __init__(self, master, video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
 
         self.master = master
+        self.master.title("Yoga Pose Estimation")
         self.video_path = video_path
         self.cap = cv2.VideoCapture(video_path)
 
@@ -748,8 +749,8 @@ class AplicationPoseEstimation:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    # app = AplicationPoseEstimation(master=root, video_path=0)
-    app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Tree.mp4')
+    app = AplicationPoseEstimation(master=root, video_path=0)
+    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Tree.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy3\Warrior.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Warrior.mp4')
