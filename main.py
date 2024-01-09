@@ -13,6 +13,9 @@ import os
 from datetime import datetime
 import simpleaudio as sa
 
+# color_main = '#2ecc71'
+# color_sec = '#004d00'
+# color_bg = '#d2f5e3'
 
 class AplicationPoseEstimation:
     def __init__(self, master, video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
@@ -24,6 +27,10 @@ class AplicationPoseEstimation:
         self.menu_view_frame = None
         self.modify_view_frame = None
         self.history_view_frame = None
+
+        # self.session_view_button = None
+        # self.modify_view_button = None
+        # self.history_view_button = None
 
         self.session_left_frame = None
         self.photo_label = None
@@ -41,7 +48,8 @@ class AplicationPoseEstimation:
                                       min_tracking_confidence=min_tracking_confidence)
 
         # nazwa modelu do klasyfikacji pozycji
-        self.model = self.get_model(f"perc.hdf5")
+        # self.model = self.get_model(f"perc.hdf5")
+        self.model = self.get_model(f"conv.hdf5")
         self.treshold = 0.50
 
         with open('slownik_etykiet.json', 'r') as json_file:
@@ -53,6 +61,7 @@ class AplicationPoseEstimation:
         self.dictionary = {val: key for key, val in self.dictionary.items()}
         self.new_dictionary = {}
 
+
         # Konfiguracja głównego okna
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
@@ -63,7 +72,19 @@ class AplicationPoseEstimation:
         master.grid_rowconfigure(0, weight=1)
         master.grid_columnconfigure(0, weight=1)
 
+        self.camera_height = None
+        self.camera_width = None
+
         self.list_of_positions = []
+
+        # utworzenie widoku z menu
+        self.menu_view()
+        # utworzenie widoku z przeprowadzaniem cwiczen
+        self.session_view()
+        # utworzenie widoku umozliwiajacego modyfikacje sesji
+        self.modify_view()
+        # utworzenie widoku umozliwiajacego podglad historii
+        self.history_view()
 
         self.name_of_actual_position = None
         self.number_of_actual_position = -1
@@ -86,15 +107,6 @@ class AplicationPoseEstimation:
 
         self.video_running = False
 
-        # utworzenie widoku z menu
-        self.menu_view()
-        # utworzenie widoku z przeprowadzaniem cwiczen
-        self.session_view()
-        # utworzenie widoku umozliwiajacego modyfikacje sesji
-        self.modify_view()
-        # utworzenie widoku umozliwiajacego podglad historii
-        self.history_view()
-
     def menu_view(self):
         # Tworzenie ramki
         self.menu_view_frame = tk.Frame(self.master)
@@ -105,7 +117,7 @@ class AplicationPoseEstimation:
         label.grid(row=0, column=0, columnspan=3, pady=20)
 
         # Tworzenie etykiety
-        desc_menu_label = tk.Label(self.menu_view_frame, text="To jest opis aplikacji.", font=("Helvetica", 12))
+        desc_menu_label = tk.Label(self.menu_view_frame, text="Aplikacja do rozpoznawania ułożenia ciała w obrazie.", font=("Helvetica", 12))
         desc_menu_label.grid(row=1, column=1, pady=10, columnspan=1)
 
         # Tworzenie przycisków
@@ -156,8 +168,8 @@ class AplicationPoseEstimation:
         # Obraz z kamery
         self.camera_width = 9 * self.app_width // 10
         self.camera_height = 9 * self.app_height // 10
-        self.empty_image = Image.new("RGB", (3 * self.camera_width // 4, self.camera_height),
-                                     "green")  # Tworzenie pustego obrazu
+        # self.empty_image = Image.new("RGB", (3 * self.camera_width // 4, self.camera_height),
+        #                              "green")  # Tworzenie pustego obrazu
 
         # Dodaj 6 wierszy do kolumny
         for i in range(6):
@@ -782,9 +794,9 @@ class AplicationPoseEstimation:
 if __name__ == "__main__":
     root = tk.Tk()
     app = AplicationPoseEstimation(master=root, video_path=0)
-    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Butterfly.mp4')
+    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Tree.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
-    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Chair.mp4')
+    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy3\Warrior.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Warrior.mp4')
 
     root.mainloop()
