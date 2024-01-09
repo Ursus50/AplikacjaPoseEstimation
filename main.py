@@ -1,21 +1,19 @@
-import cv2
-import tkinter as tk
-from tkinter import *
-from PIL import Image, ImageTk
-import threading
-from tkinter import messagebox, ttk
 import json
+import os
+import threading
+import time
+import tkinter as tk
+from datetime import datetime
+from tkinter import *
+from tkinter import messagebox, ttk
+
+import cv2
 import mediapipe as mp
 import numpy as np
-from keras.models import load_model
-import time
-import os
-from datetime import datetime
-import simpleaudio as sa
+from PIL import Image, ImageTk
 
-# color_main = '#2ecc71'
-# color_sec = '#004d00'
-# color_bg = '#d2f5e3'
+from utils import play_sound, get_model, safe_to_file_history
+
 
 class AplicationPoseEstimation:
     def __init__(self, master, video_path, min_detection_confidence=0.5, min_tracking_confidence=0.5):
@@ -49,7 +47,7 @@ class AplicationPoseEstimation:
 
         # nazwa modelu do klasyfikacji pozycji
         # self.model = self.get_model(f"perc.hdf5")
-        self.model = self.get_model(f"conv.hdf5")
+        self.model = get_model(f"conv.hdf5")
         self.treshold = 0.50
 
         with open('slownik_etykiet.json', 'r') as json_file:
@@ -60,7 +58,6 @@ class AplicationPoseEstimation:
         print(type(self.dictionary))
         self.dictionary = {val: key for key, val in self.dictionary.items()}
         self.new_dictionary = {}
-
 
         # Konfiguracja głównego okna
         screen_width = self.master.winfo_screenwidth()
@@ -117,7 +114,8 @@ class AplicationPoseEstimation:
         label.grid(row=0, column=0, columnspan=3, pady=20)
 
         # Tworzenie etykiety
-        desc_menu_label = tk.Label(self.menu_view_frame, text="Aplikacja do rozpoznawania ułożenia ciała w obrazie.", font=("Helvetica", 12))
+        desc_menu_label = tk.Label(self.menu_view_frame, text="Aplikacja do rozpoznawania ułożenia ciała w obrazie.",
+                                   font=("Helvetica", 12))
         desc_menu_label.grid(row=1, column=1, pady=10, columnspan=1)
 
         # Tworzenie przycisków
@@ -126,20 +124,20 @@ class AplicationPoseEstimation:
         button_width = 30
 
         session_view_button = tk.Button(self.menu_view_frame, text="Rozpocznij sesję",
-                                             command=self.show_session_view,
-                                             font=button_font, relief=button_relief, width=button_width, height=4)
+                                        command=self.show_session_view,
+                                        font=button_font, relief=button_relief, width=button_width, height=4)
         session_view_button.grid(row=2, column=1, pady=20, columnspan=1)
 
         modify_view_button = tk.Button(self.menu_view_frame, text="Modyfikuj sesję", command=self.show_modify_view,
-                                            font=button_font, relief=button_relief, width=button_width, height=4)
+                                       font=button_font, relief=button_relief, width=button_width, height=4)
         modify_view_button.grid(row=3, column=1, pady=20, columnspan=1)
 
         history_view_button = tk.Button(self.menu_view_frame, text="Historia", command=self.show_history_view,
-                                             font=button_font, relief=button_relief, width=button_width, height=4)
+                                        font=button_font, relief=button_relief, width=button_width, height=4)
         history_view_button.grid(row=4, column=1, pady=20, columnspan=1)
 
         shutdown_button = tk.Button(self.menu_view_frame, text="Zakończ", command=self.shutdown,
-                                         font=button_font, relief=button_relief, width=button_width, height=4)
+                                    font=button_font, relief=button_relief, width=button_width, height=4)
         shutdown_button.grid(row=5, column=1, pady=20, columnspan=1)
 
     def session_view(self):
@@ -189,7 +187,7 @@ class AplicationPoseEstimation:
         row = self.session_left_frame.winfo_children()[1]
 
         # Create a Label Widget to display the text or Image
-        self.photo_label = tk.Label(row) #, image=self.img
+        self.photo_label = tk.Label(row)  # , image=self.img
         self.photo_label.pack()
         self.change_photo("None")
 
@@ -294,7 +292,8 @@ class AplicationPoseEstimation:
                 'exercise_list': self.performed_exercises,
                 'time_of_session': f"{hours:02d}:{minutes:02d}:{seconds:02d}"
             }
-            self.safe_to_file_history(history=exercise_history)
+            safe_to_file_history(history=exercise_history)
+            self.add_history_data()
         self.performed_exercises.clear()
 
     def modify_view(self):
@@ -326,7 +325,7 @@ class AplicationPoseEstimation:
             self.new_dictionary[values_list[i - 1]] = self.check_var_list[i].get()
 
         # Dodaj przycisk pod checkboxami
-        back_to_menu_modify_button = tk.Button(self.modify_view_frame, text="Menu", command=self.back_to_menu_modify, 
+        back_to_menu_modify_button = tk.Button(self.modify_view_frame, text="Menu", command=self.back_to_menu_modify,
                                                font=("Helvetica", 14), relief="groove", width=40, height=4)
         back_to_menu_modify_button.grid(row=len(values_list) + 2, column=0, sticky='e')
 
@@ -376,7 +375,7 @@ class AplicationPoseEstimation:
 
         # Dodaj przycisk pod checkboxami
         back_to_menu_history_button = tk.Button(self.history_view_frame, text="Menu", command=self.back_to_menu_history,
-                                        font=("Helvetica", 14), relief="groove", width=40, height=4)
+                                                font=("Helvetica", 14), relief="groove", width=40, height=4)
         back_to_menu_history_button.grid(row=2, column=0, columnspan=3, pady=60)
 
         # Konfiguracja rozszerzania kolumn i wierszy
@@ -571,11 +570,11 @@ class AplicationPoseEstimation:
         # stwierdzenie faktu wykonania cwiczenia
         if self.number_of_actual_position > 0 and self.number_of_actual_position <= self.number_positions_to_do:
             self.performed_exercises.append(self.name_of_actual_position)
-            self.play_sound()
+            play_sound(f"signal.wav")
 
         # sprawdzenie czy zostalo wykonane osatnie cwiczenie
         if self.number_of_actual_position <= self.number_positions_to_do:
-            self.play_sound()
+            play_sound(f"signal.wav")
             self.name_of_actual_position = self.dictionary.get(self.list_of_positions[self.number_of_actual_position])
 
             # nazwa pozycji
@@ -601,7 +600,8 @@ class AplicationPoseEstimation:
             self.end_session()
 
     def change_photo(self, name_of_photo):
-        """Funckja zmienia wyswietlany obrazek w widoku sesji. Parametr wejciowy: name_of_photo - nazwa pliku ze zdjeciem"""
+        """Funckja zmienia wyswietlany obrazek w widoku sesji. Parametr wejciowy: name_of_photo - nazwa pliku ze
+        zdjeciem"""
         path_to_picture = os.path.join(f"pozycje", f"{name_of_photo}.png")
         # Tworzenie pełnej ścieżki
         folder_path = os.path.join(os.getcwd(), path_to_picture)
@@ -614,39 +614,6 @@ class AplicationPoseEstimation:
             img = ImageTk.PhotoImage(empty_image)
             self.photo_label.configure(image=img)
             self.photo_label.image = img
-
-    def play_sound(self):
-        path_to_picture = os.path.join(f"dzwieki", f"signal.wav")
-        folder_path = os.path.join(os.getcwd(), path_to_picture)
-        if os.path.exists(folder_path):
-            wave_obj = sa.WaveObject.from_wave_file(folder_path)  # Wymień na nazwę pliku dźwiękowego
-            wave_obj.play()
-
-    def safe_to_file_history(self, history):
-        if not os.path.exists("historia"):
-            os.makedirs("historia")
-
-        time_now = datetime.now()
-        file_name = f"{time_now.strftime('%Y-%m-%d_%H-%M-%S')}.json"
-        # file_name = f"{time_now.strftime('%d-%m-%Y_%H-%M-%S')}.json"
-        path_file = os.path.join("historia", file_name)
-
-        with open(path_file, 'w') as plik:
-            json.dump(history, plik, indent=2)
-
-        # Uaktualnienie danych w historii
-        self.add_history_data()
-
-    def get_model(self, model_name):
-        path_to_picture = os.path.join(f"modele", model_name)
-        model_path = os.path.join(os.getcwd(), path_to_picture)
-        model = load_model(model_path)
-        return model
-
-    def get_max_value_index(self, vector):
-        max_index = np.argmax(vector)
-        print(max_index)
-        return max_index
 
     def get_name_position(self, vector):
 
@@ -662,32 +629,16 @@ class AplicationPoseEstimation:
         print(name)
         return name
 
-    def flatten_landmarks(self, pose_landmarks_list):
-        # Spłaszczanie listy do jednego ciągu liczb
-
-        flattened_landmarks = [val for sublist in pose_landmarks_list for point in sublist for val in
-                               (point.x, point.y, point.z)]
-        print(flattened_landmarks)
-        return flattened_landmarks
-
-    def flatten_normalized_landmarks(self, normalized_landmarks):
-        flattened_list = []
-
-        for landmark in normalized_landmarks:
-            flattened_list.extend([landmark.x, landmark.y, landmark.z])
-        return flattened_list
-
     def draw_landmarks_on_image(self, rgb_image, detection_result):
         pose_landmarks_list_org = detection_result.pose_landmarks
+        print("Lista: ")
+        print(pose_landmarks_list_org)
 
         # Assuming NormalizedLandmark has attributes x, y, and z
         new_list = [{'x': item.x, 'y': item.y, 'z': item.z} for item in detection_result.pose_landmarks.landmark]
 
         # Indeksy do usunięcia
         indexes_to_remove = [1, 3, 4, 6, 8, 7, 22, 21]
-
-        print("Lista: ")
-        print(pose_landmarks_list_org)
 
         # Usunięcie elementów o podanych indeksach
         pose_landmarks_list = [pose_landmarks for i, pose_landmarks in enumerate(new_list)
@@ -697,21 +648,6 @@ class AplicationPoseEstimation:
         flattened_landmarks = [value for item in pose_landmarks_list for value in item.values()]
 
         flattened_landmarks_np = np.array([flattened_landmarks])  # Dodajemy dodatkowy wymiar dla batch_size
-
-        '''
-        # Dla resnet
-        flattened_landmarks_np = [np.array_split(np.array(item), 25) for item in flattened_landmarks_np]
-
-        flattened_landmarks_np = np.array(flattened_landmarks_np)
-
-        desired_shape = (1, 32, 32, 3)
-        expanded_data = np.zeros(desired_shape)
-
-        # Kopiowanie istniejących danych do nowej tablicy
-        expanded_data[:, :25, :25, :] = flattened_landmarks_np[:, :, np.newaxis, :]
-
-        flattened_landmarks_np = expanded_data
-        '''
 
         annotated_image = np.copy(rgb_image)
         if pose_landmarks_list:
@@ -793,8 +729,8 @@ class AplicationPoseEstimation:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = AplicationPoseEstimation(master=root, video_path=0)
-    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Tree.mp4')
+    # app = AplicationPoseEstimation(master=root, video_path=0)
+    app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Tree.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy3\Warrior.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Warrior.mp4')
