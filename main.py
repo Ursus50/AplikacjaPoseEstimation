@@ -1,3 +1,14 @@
+"""
+Aplikacja do wspomagania treningow jogi. Wykorzystuje MediaPipe w celu wykrycia czesci ciala, a nastepnie przy
+wykorzystaniu Keras nastepuje klasyfikacja pozycji. Na aplikacje skladaja sie ponizszy plik main.py wraz
+z plikiem utils.py. Program ten jest skierowany do koncowego uzytkownika i razem w programami technicznymi
+(przygotowujacego dane dla sieci oraz do trenowania sieci) stanowi system wspomagajacy aktywnosc fizyczna.
+
+Autor: Michał Wójtowicz
+Data utworzenia: 2024-01-09
+"""
+
+
 import json
 import os
 import threading
@@ -6,7 +17,6 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import *
 from tkinter import messagebox, ttk
-
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -23,36 +33,38 @@ class AplicationPoseEstimation:
         self.cap = cv2.VideoCapture(video_path)
 
         self.menu_view_frame = None
+        self.session_view_frame = None
         self.modify_view_frame = None
         self.history_view_frame = None
-
-        # self.session_view_button = None
-        # self.modify_view_button = None
-        # self.history_view_button = None
 
         self.session_left_frame = None
         self.photo_label = None
         self.pause_session_button = None
         self.start_session_button = None
         self.camera_label = None
+        self.end_seesion_button = None
+        self.history_tree = None
+        self.back_to_menu_session_button = None
 
         self.checkbuttons_list = None
         self.check_var_list = None
 
-        # self.img = None
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(min_detection_confidence=min_detection_confidence,
                                       min_tracking_confidence=min_tracking_confidence)
 
-        # nazwa modelu do klasyfikacji pozycji
+        # Pozyskanie modelu do klasyfikacji pozycji
         # self.model = self.get_model(f"perc.hdf5")
         self.model = get_model(f"conv.hdf5")
+
+        # Prog pewnosci podczas klasyfikacji pozycji
         self.treshold = 0.50
 
+        # Pozyskanie nazw uzywanych przy klasyfikajci
         with open('slownik_etykiet.json', 'r') as json_file:
             self.dictionary = json.load(json_file)
-        # Wyświetlamy wczytany słownik
+
         print("Wczytany słownik etykiet:")
         print(self.dictionary)
         print(type(self.dictionary))
@@ -74,22 +86,22 @@ class AplicationPoseEstimation:
 
         self.list_of_positions = []
 
-        # utworzenie widoku z menu
+        # Utworzenie widoku z menu
         self.menu_view()
-        # utworzenie widoku z przeprowadzaniem cwiczen
+        # Utworzenie widoku sesji z przeprowadzaniem cwiczen
         self.session_view()
-        # utworzenie widoku umozliwiajacego modyfikacje sesji
+        # Utworzenie widoku umozliwiajacego modyfikacje sesji
         self.modify_view()
-        # utworzenie widoku umozliwiajacego podglad historii
+        # Utworzenie widoku umozliwiajacego podglad historii
         self.history_view()
 
         self.name_of_actual_position = None
         self.number_of_actual_position = -1
-        # self.list_of_positions = self.positions_to_do()
 
         self.number_positions_to_do = 0
         self.positions_to_do()
-        # self.number_positions_to_do = len(self.list_of_positions)
+
+        # Parametry do zliczania i zarzadzania czasem
         self.timer = 0
         self.last_time = 0
         self.current_time = 0
@@ -105,7 +117,9 @@ class AplicationPoseEstimation:
         self.video_running = False
 
     def menu_view(self):
-        # Tworzenie ramki
+        """Tworzenie widoku menu"""
+
+        # Tworzenie glownej ramki
         self.menu_view_frame = tk.Frame(self.master)
         self.menu_view_frame.grid(row=0, column=0)
 
@@ -118,7 +132,7 @@ class AplicationPoseEstimation:
                                    font=("Helvetica", 12))
         desc_menu_label.grid(row=1, column=1, pady=10, columnspan=1)
 
-        # Tworzenie przycisków
+        # Tworzenie przyciskow
         button_font = ("Helvetica", 14)
         button_relief = "groove"
         button_width = 30
@@ -141,8 +155,10 @@ class AplicationPoseEstimation:
         shutdown_button.grid(row=5, column=1, pady=20, columnspan=1)
 
     def session_view(self):
+        """Tworzenie widoku sesji"""
+
+        # Tworzenie glownej ramki
         self.session_view_frame = tk.Frame(self.master)
-        # self.session_view_frame.grid(row=0, column=0, sticky="nsew")
 
         # Podzielenie glownego okna na 2 czesci
         self.session_view_frame.grid_rowconfigure(0, weight=1)
@@ -153,7 +169,7 @@ class AplicationPoseEstimation:
         self.session_left_frame = tk.Frame(self.session_view_frame, bg="lightblue")
         self.session_left_frame.grid(row=0, column=0, sticky="nsew")
 
-        # prawa czesc
+        # Prawa czesc
         session_right_frame = tk.Frame(self.session_view_frame, bg="lightgreen")
         session_right_frame.grid(row=0, column=1, sticky="nsew")
 
@@ -166,18 +182,19 @@ class AplicationPoseEstimation:
         # Obraz z kamery
         self.camera_width = 9 * self.app_width // 10
         self.camera_height = 9 * self.app_height // 10
-        # self.empty_image = Image.new("RGB", (3 * self.camera_width // 4, self.camera_height),
-        #                              "green")  # Tworzenie pustego obrazu
 
-        # Dodaj 6 wierszy do kolumny
+        # Dodanie 6 wierszy do lewej czesci
         for i in range(6):
             row_frame = tk.Frame(self.session_left_frame, bg="yellow", height=50)
             row_frame.pack(fill="both", expand=True)
 
+        # Dodanie etykiet do lewej czesci widoku sesji
         self.add_labels()
+        # Dodanie przyciskow do lewej czesci widoku sesji
         self.add_buttons()
 
     def add_labels(self):
+        """Dodanie etykiet do widoku lewej czesci sesji"""
 
         # Label z nazwa pozycji
         row = self.session_left_frame.winfo_children()[0]
@@ -186,8 +203,8 @@ class AplicationPoseEstimation:
 
         row = self.session_left_frame.winfo_children()[1]
 
-        # Create a Label Widget to display the text or Image
-        self.photo_label = tk.Label(row)  # , image=self.img
+        # Label ze zdjeciem pozycji
+        self.photo_label = tk.Label(row)
         self.photo_label.pack()
         self.change_photo("None")
 
@@ -202,25 +219,25 @@ class AplicationPoseEstimation:
         label.pack()
 
     def add_buttons(self):
+        """Dodanie przyciskow Start, Wstrzymaj, Menu, Zakoncz sesje do lewej czesci widoku sesji"""
 
         row_buttons = self.session_left_frame.winfo_children()[4]
-
-        print(row_buttons)
-
+        # print(row_buttons)
         row_buttons = tk.Frame(row_buttons, bg="white")
         row_buttons.pack(fill="both", expand=True)
 
+        # Przycisk odpowiedzialny za rozpoczecie i wznowienie sesji
         self.start_session_button = tk.Button(row_buttons, text="Start", relief="groove", width=10,
                                               command=self.start_capture)
         self.start_session_button.grid(row=0, column=0, sticky="nsew")
-        row_buttons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
+        row_buttons.grid_rowconfigure(0, weight=1)  # Ustawienie wiersza aby zajmowal dostępną przestrzen w pionnie
 
+        # Przycisk odpowiedzialny za wstrzymanie sesji
         self.pause_session_button = tk.Button(row_buttons, text="Wstrzymaj", relief="groove", width=10,
                                               command=self.stop_capture)
         self.pause_session_button.grid(row=0, column=1, sticky="nsew")
         self.pause_session_button["state"] = "disabled"
-        row_buttons.grid_columnconfigure(0,
-                                         weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
+        row_buttons.grid_columnconfigure(0, weight=1)  # Ustawienie kolumny aby zajmowala dostępna przestrzen w poziomie
 
         row_buttons.grid_columnconfigure(1, weight=1)
         row_buttons.grid_rowconfigure(0, weight=1)
@@ -229,26 +246,25 @@ class AplicationPoseEstimation:
         row_buttons = tk.Frame(row_buttons, bg="white")
         row_buttons.pack(fill="both", expand=True)
 
-        # przycisk odpowiedzialny za przejscie do menu
+        # Przycisk odpowiedzialny za przejscie do menu
         self.back_to_menu_session_button = tk.Button(row_buttons, text="Menu", relief="groove", width=10,
                                                      command=self.back_to_menu_session)
         self.back_to_menu_session_button.grid(row=0, column=0, sticky="nsew")
 
-        # przycisk odpowiedzialny za zakończenie sesji cwiczen
+        # Przycisk odpowiedzialny za zakończenie sesji cwiczen
         self.end_seesion_button = tk.Button(row_buttons, text="Zakończ sesję", relief="groove", width=10,
                                             command=self.end_session)
         self.end_seesion_button.grid(row=0, column=1, sticky="nsew")
         self.end_seesion_button["state"] = "disable"
 
-        row_buttons.grid_rowconfigure(0, weight=1)  # Ustawienie wagi wiersza, aby zajmować dostępną przestrzeń pionową
-        row_buttons.grid_columnconfigure(0,
-                                         weight=1)  # Ustawienie wagi kolumny, aby zajmować dostępną przestrzeń poziomą
+        row_buttons.grid_rowconfigure(0, weight=1)     # Ustawienie wiersza aby zajmowal dostępną przestrzen w pionnie
+        row_buttons.grid_columnconfigure(0, weight=1)  # Ustawienie kolumny aby zajmowala dostępna przestrzen w poziomie
         row_buttons.grid_columnconfigure(1, weight=1)
 
     def end_session(self):
         """ Funckja odpowiedzialna za zakonczenie sesji ćwiczeń i zapis historii do pliku"""
 
-        # if self.session_begin is True:
+        # Obsluga przyciskow
         self.back_to_menu_session_button["state"] = "normal"
         self.pause_session_button["state"] = "disable"
         self.start_session_button["state"] = "normal"
@@ -259,27 +275,28 @@ class AplicationPoseEstimation:
         self.session_begin = False
         self.session_on = False
 
-        # self.video_running = False
-        # self.number_of_actual_position = -1
-        # nazwa pozycji
-        # Uzyskaj dostęp do etykiety
+        # Ustawienie nazwy pozycji
         label = self.session_left_frame.winfo_children()[0].winfo_children()[0]
         # Zmiana tekstu w etykiecie
         label.config(text="Nazwa pozycji")
 
-        # numer pozycji
+        # Ustawienie numer pozycji
         label = self.session_left_frame.winfo_children()[2].winfo_children()[0]
         # Zmiana tekstu w etykiecie
         label.config(text="-/-")
 
-        # czas pozycji
+        # Ustawienie czasu pozycji
         label = self.session_left_frame.winfo_children()[3].winfo_children()[0]
         # Zmiana tekstu w etykiecie
         label.config(text="00:00")
+
         # Zmiana obrazka na bazowy
         self.change_photo("None")
-        # zapytanie czy zapisać historie przeprowadzonej sesji
+
+        # Zapytanie czy zapisać historie przeprowadzonej sesji
         answer = messagebox.askquestion("Pytanie", "Czy chcesz zapisać historię sesji?")
+
+        # Obsluga zapisu historii sesji
         if answer == "yes":
             time_of_session = time.time() - self.time_session_begin
             hours = int(time_of_session // 3600)
@@ -297,20 +314,21 @@ class AplicationPoseEstimation:
         self.performed_exercises.clear()
 
     def modify_view(self):
-        self.modify_view_frame = tk.Frame(self.master)
-        # self.modify_view_frame.grid(row=0, column=0)
+        """Tworzenie widoku modyfikacji sesji"""
 
-        # Tworzenie nagłówka
+        # Tworzenie glownej ramki
+        self.modify_view_frame = tk.Frame(self.master)
+
+        # Tworzenie naglowka
         label_modify = tk.Label(self.modify_view_frame, text="Modyfikuj sesję ćwiczeń", font=("Helvetica", 40))
         label_modify.grid(row=0, column=0, columnspan=3, pady=20)
 
-        # Tworzenie przycisków typu Checkbutton
+        # Tworzenie przycisków typu checkbutton
         self.check_var_list = []
         self.checkbuttons_list = []
 
         self.new_dictionary = {}
-
-        # Uzyskaj listę wartości, pomijając wartość 'None'
+        # Uzyskanie listy wykrywanych pozycji
         values_list = [value for value in self.dictionary.values() if value != 'None']
 
         for i in range(0, len(values_list)):
@@ -324,26 +342,27 @@ class AplicationPoseEstimation:
 
             self.new_dictionary[values_list[i - 1]] = self.check_var_list[i].get()
 
-        # Dodaj przycisk pod checkboxami
+        # Przycisk odpowiedzialny za powrot do widoku menu
         back_to_menu_modify_button = tk.Button(self.modify_view_frame, text="Menu", command=self.back_to_menu_modify,
                                                font=("Helvetica", 14), relief="groove", width=40, height=4)
         back_to_menu_modify_button.grid(row=len(values_list) + 2, column=0, sticky='e')
 
     def history_view(self):
+        """Tworzenie widoku historii"""
+
+        # Tworzenie glownej ramki
         self.history_view_frame = tk.Frame(self.master)
-        # self.history_view_frame.grid(row=0, column=0, sticky='n')
 
         # Tworzenie nagłówka
         label_history = tk.Label(self.history_view_frame, text="Historia ćwiczeń", font=("Helvetica", 40))
         label_history.grid(row=0, column=0, columnspan=3, pady=30, sticky='s')
 
-        # Utwórz Treeview z nagłówkami kolumn
-        # self.tree = ttk.Treeview(self.history_view_frame, columns=('ID', 'Imię', 'Nazwisko'), height=20)
+        # Utworzenie Treeview z nagłówkami kolumn
         self.history_tree = ttk.Treeview(self.history_view_frame,
                                          columns=('Data', 'Czas trwania sesji', 'Liczba wykonanych pozycji',
                                                   'Liczba zaplanowanych pozycji'), height=20)
 
-        # Dodaj nagłówki kolumn
+        # Dodanie naglowkow kolumn
         self.history_tree.heading('#0', text='Nr')
         self.history_tree.heading('Data', text='Data')
         self.history_tree.heading('Czas trwania sesji', text='Czas trwania sesji')
@@ -351,29 +370,28 @@ class AplicationPoseEstimation:
         self.history_tree.heading('Liczba zaplanowanych pozycji', text='Liczba zaplanowanych pozycji')
         # self.history_tree.heading('Lista wykonanych pozcyji', text='Lista wykonanych pozcyji')
 
-        # Dostosuj styl tekstu w Treeview
+        # Dostosowanie stylu w Treeview
         style = ttk.Style()
-        style.configure('Treeview.Heading', font=('Helvetica', 12), relief='solid')  # Ustaw nagłówki z większą czcionką
-        style.configure('Treeview', font=('Helvetica', 14), rowheight=30,
-                        relief='solid')  # Ustaw tekst komórek z większą czcionką
+        style.configure('Treeview.Heading', font=('Helvetica', 12), relief='solid')
+        style.configure('Treeview', font=('Helvetica', 14), rowheight=30, relief='solid')
 
-        self.history_tree.column('#0', width=50, anchor='center')  # Ustaw szerokość kolumny
-        self.history_tree.column('Data', width=200, anchor='center')  # Ustaw szerokość kolumny
-        self.history_tree.column('Czas trwania sesji', width=150, anchor='center')  # Ustaw szerokość kolumny
-        self.history_tree.column('Liczba wykonanych pozycji', width=200, anchor='center')  # Ustaw szerokość kolumny
-        self.history_tree.column('Liczba zaplanowanych pozycji', width=220, anchor='center')  # Ustaw szerokość kolumny
+        self.history_tree.column('#0', width=50, anchor='center')
+        self.history_tree.column('Data', width=200, anchor='center')
+        self.history_tree.column('Czas trwania sesji', width=150, anchor='center')
+        self.history_tree.column('Liczba wykonanych pozycji', width=200, anchor='center')
+        self.history_tree.column('Liczba zaplanowanych pozycji', width=220, anchor='center')
 
-        # Dodaj pionowy scrollbar
+        # Dodanie pionowego scrollbara
         scrollbar_y = ttk.Scrollbar(self.history_view_frame, orient='vertical', command=self.history_tree.yview)
         scrollbar_y.grid(row=1, column=3, sticky='ns')
         self.history_tree.configure(yscroll=scrollbar_y.set)
 
-        # Dodaj  dane
+        # Pozyskanie danych o historii
         self.add_history_data()
 
         self.history_tree.grid(row=1, column=0, columnspan=3, sticky='nsew')
 
-        # Dodaj przycisk pod checkboxami
+        # Przycisk odpowiedzialny za powrot do widoku menu
         back_to_menu_history_button = tk.Button(self.history_view_frame, text="Menu", command=self.back_to_menu_history,
                                                 font=("Helvetica", 14), relief="groove", width=40, height=4)
         back_to_menu_history_button.grid(row=2, column=0, columnspan=3, pady=60)
@@ -388,12 +406,12 @@ class AplicationPoseEstimation:
         self.clear_history_tree_values()
         # Nazwa folderu
         folder_name = "historia"
-        # Tworzenie pełnej ścieżki
+        # Tworzenie pelnej ścieżki
         folder_path = os.path.join(os.getcwd(), folder_name)
 
-        # Sprawdź, czy folder istnieje
+        # Pozyskanie danych o hostorii przeprowadzonych sesji
         if os.path.exists(folder_path) and os.path.isdir(folder_path):
-            # Pobierz listę plików w folderze
+            # Pobranie historii z folderu w postaci nazw plikow
             file_list = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
 
             file_list.reverse()
@@ -427,41 +445,34 @@ class AplicationPoseEstimation:
                     file_count -= 1
 
     def clear_history_tree_values(self):
-        """Usuwa wszystkie wartosci z historii"""
-        # Usuń wszystkie elementy (rzędy) z drzewa
+        """Usuniecie wszystkicj wartosci z historii"""
+
         for item in self.history_tree.get_children():
             self.history_tree.delete(item)
 
-    # uaktualnienie dictionarya odpowiedzialnego za pozycje do wykonania
     def update_selected_options(self, i):
+        """Uaktualnienie listy zawierajacej pozycje do wykonania"""
+
         check_var = self.check_var_list[i]
         self.new_dictionary[self.checkbuttons_list[i].cget("text")] = check_var.get()
 
     def shutdown(self):
+        """Zamkniecie aplikacji"""
         self.master.destroy()
 
-    # # module for upload video from directory
-    # def upload_video(self):
-    #     file_path = filedialog.askopenfilename()
-    #     if file_path:
-    #         self.cap = cv2.VideoCapture(file_path)
-
-    # module for start video
     def start_capture(self):
-        # if(len(self.positions_to_do())):
+        """Rozpoczecie oraz wznowienie sesji"""
 
-        # self.video_running = True
+        # Obsluga przyciskow
         self.start_session_button["state"] = "disabled"
-        self.start_session_button.config(text="Wnów")
+        self.start_session_button.config(text="Wznów")
 
         self.pause_session_button["state"] = "normal"
 
         self.end_seesion_button["state"] = "normal"
         self.back_to_menu_session_button["state"] = "disabled"
 
-        # # Start a new thread to read and display video frames continuously
-        # threading.Thread(target=self.video_detection).start()
-
+        # Rozpoczecie po sesji
         if self.session_begin is False:
             self.time_session_begin = time.time()
             self.next_position()
@@ -469,11 +480,11 @@ class AplicationPoseEstimation:
 
         self.session_on = True
 
-    # module for stop or pause video
     def stop_capture(self):
-        # self.video_running = False
+        """Wstrzymanie sesji"""
         self.session_on = False
 
+        # Obsluga przysickow
         self.start_session_button["state"] = "normal"
         self.pause_session_button["state"] = "disabled"
 
@@ -492,6 +503,7 @@ class AplicationPoseEstimation:
         try:
             ret, _ = self.cap.read()
 
+            # Zabezpieczenie w przypadku braku wybrania pozycji do trenowania
             if self.number_positions_to_do < 1:
                 messagebox.showwarning("Ostrzeżenie", "Nie wybrano żadnej pozycji! Przejdż do \"Modyfikuj sesję\".")
             elif ret is False:
@@ -500,7 +512,7 @@ class AplicationPoseEstimation:
                     self.cap = cv2.VideoCapture(self.video_path)
             else:
                 self.video_running = True
-                # Start a new thread to read and display video frames continuously
+                # Rozpoczecie nowego watku, aby w sposob ciągly czytac i wyswietlac klatki wideo
                 threading.Thread(target=self.video_detection).start()
 
                 self.session_view_frame.grid_forget()
@@ -549,15 +561,16 @@ class AplicationPoseEstimation:
         self.number_positions_to_do = len(self.list_of_positions)
 
     def update_timer(self):
+        """Zliczanie czasu wykonywania pozycji oraz uaktualnienie etykiet"""
         # Zmiana tekstu w etykiecie
-        self.timer = self.current_time - self.time_start  # + self.timer
+        self.timer = self.current_time - self.time_start
 
         minuty = int(self.timer // 60)
         sekundy = int(self.timer % 60)
 
         self.session_left_frame.winfo_children()[3].winfo_children()[0].config(text=f"{minuty:02d}:{sekundy:02d}")
 
-        # przejscie do nastepnej pozycji
+        # Przejscie do nastepnej pozycji
         if int(self.timer) > self.all_time:
             self.next_position()
 
@@ -567,12 +580,12 @@ class AplicationPoseEstimation:
         self.timer = 0
         self.number_of_actual_position += 1
 
-        # stwierdzenie faktu wykonania cwiczenia
+        # Stwierdzenie faktu wykonania cwiczenia
         if self.number_of_actual_position > 0 and self.number_of_actual_position <= self.number_positions_to_do:
             self.performed_exercises.append(self.name_of_actual_position)
             play_sound(f"signal.wav")
 
-        # sprawdzenie czy zostalo wykonane osatnie cwiczenie
+        # Sprawdzenie czy zostalo wykonane osatnie cwiczenie
         if self.number_of_actual_position <= self.number_positions_to_do:
             play_sound(f"signal.wav")
             self.name_of_actual_position = self.dictionary.get(self.list_of_positions[self.number_of_actual_position])
@@ -616,8 +629,7 @@ class AplicationPoseEstimation:
             self.photo_label.image = img
 
     def get_name_position(self, vector):
-
-        # tmp = np.max(vector)
+        """Pozyskanie nazwy pozycji na podstawie jej numeru"""
         # Progowanie pewnosci
         if np.max(vector) > self.treshold:
             # key = get_max_value_index(vector)
@@ -630,34 +642,39 @@ class AplicationPoseEstimation:
         return name
 
     def draw_landmarks_on_image(self, rgb_image, detection_result):
-        pose_landmarks_list_org = detection_result.pose_landmarks
-        print("Lista: ")
-        print(pose_landmarks_list_org)
+        """Opracowanie danych otrzymanych w wyniku szkieletyzacji, przeprowadzenie klasyfikacji danych oraz narysowanie
+        szkieletu na otrzymanym obrazie"""
 
-        # Assuming NormalizedLandmark has attributes x, y, and z
+        # pose_landmarks_list_org = detection_result.pose_landmarks
+        # print("Lista: ")
+        # print(pose_landmarks_list_org)
+
+        # Pozyskanie listy zawierajacej 3 wymiary: X, Y, Z
         new_list = [{'x': item.x, 'y': item.y, 'z': item.z} for item in detection_result.pose_landmarks.landmark]
 
-        # Indeksy do usunięcia
+        # Indeksy punktow do usunięcia
         indexes_to_remove = [1, 3, 4, 6, 8, 7, 22, 21]
 
         # Usunięcie elementów o podanych indeksach
         pose_landmarks_list = [pose_landmarks for i, pose_landmarks in enumerate(new_list)
                                if i not in indexes_to_remove]
 
-        # Spłaszczanie listy do jednowymiarowej listy liczb
+        # Splaszczanie listy do jednowymiarowej listy liczb
         flattened_landmarks = [value for item in pose_landmarks_list for value in item.values()]
 
-        flattened_landmarks_np = np.array([flattened_landmarks])  # Dodajemy dodatkowy wymiar dla batch_size
+        # Dodadanie dodatkowego wymiaru dla batch_size
+        flattened_landmarks_np = np.array([flattened_landmarks])
 
         annotated_image = np.copy(rgb_image)
+
+        # Obsluga klasyfikacji pozycji
         if pose_landmarks_list:
             predictions = self.model.predict(flattened_landmarks_np)
             name_of_position = self.get_name_position(predictions)
-            cv2.putText(annotated_image, name_of_position, (300, 80), cv2.FONT_HERSHEY_PLAIN, 3,
-                        (0, 0, 0),
-                        4)
-            print(predictions)
+            cv2.putText(annotated_image, name_of_position, (300, 80), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 4)
+            # print(predictions)
 
+            # Ocena zgodnosci wykrytej pozycji z zadana i zarzadzanie czasem
             if name_of_position == self.name_of_actual_position and self.flag == 0:
                 self.time_start = time.time()
                 if self.timer != 0:
@@ -669,32 +686,36 @@ class AplicationPoseEstimation:
             elif self.flag == 1:
                 self.flag = 0
 
+        # Rysowanie wkrytych punktów na obrazie w postaci szkieletu
         self.mp_drawing.draw_landmarks(annotated_image, detection_result.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
 
         return annotated_image
 
     def video_detection(self):
+        """"Pozyskanie danych w postaci obrazu z kamery, wykrywanie punktow charakterystycznych oraz wyswietlanie
+        zmodyfikowanego obrazu na ekranie"""
+
         ret, frame = self.cap.read()
 
+        # Sprawdzenie czy pozyskano obraz z kamery
         if ret:
 
-            # Convert the image to RGB
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             annotated_image = image.copy()
 
-            # Make a detection
-            # results = self.holistic.process(image)
-
             try:
+                # Sprawdzenie czy trwa sesja
                 if self.session_on == True:
+                    # Pozyskanie punktow charakterystycznych dla czesci ciala
                     results = self.pose.process(image)
                     if results.pose_landmarks is not None:
-                        # Draw the detection points on the image
+                        # Poddanie otrzymanych danych dalszej analizie
                         annotated_image = self.draw_landmarks_on_image(annotated_image, results)
 
+                # Przygotowanie obrazu do wyswietlenia na ekranie
                 frame = cv2.resize(annotated_image, (self.camera_width, self.camera_height))
 
-                # Oblicz obszar centralny i zapisz go do nowej ramki
+                # Wyznaczanie nowego kadru obrazu
                 h, w, _ = frame.shape
                 h, w, _ = frame.shape
                 min_dim = min(h, w)
@@ -702,14 +723,12 @@ class AplicationPoseEstimation:
 
                 left = (w - 4 * min_dim // 3) // 2
 
-                frame = frame[top:top + min_dim,
-                        left:left + 4 * min_dim // 3]  # wyswietlany obraz kamery ma proporcje 4:3
+                # Wyswietlany obraz kamery ma proporcje 4:3
+                frame = frame[top:top + min_dim, left:left + 4 * min_dim // 3]
 
                 photo = ImageTk.PhotoImage(Image.fromarray(frame))
                 self.camera_label.configure(image=photo)
                 self.camera_label.image = photo  # Aktualizacja referencji do obrazu w etykiecie
-
-
 
             except IndexError as e:
                 print(f"Wystąpił błąd IndexError: {str(e)}")

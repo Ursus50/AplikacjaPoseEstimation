@@ -1,3 +1,10 @@
+"""
+Plik zawiera dodatkowe procedury potrzebne w funkcjonowaniu programu.
+
+Autor: Michał Wójtowicz
+Data: 2024-01-09
+"""
+
 import os
 import simpleaudio as sa
 from keras.models import load_model
@@ -7,6 +14,7 @@ import json
 
 
 def play_sound(file_name):
+    """Zagranie wskazanego dzwieku"""
     path_to_picture = os.path.join(f"dzwieki", file_name)
     folder_path = os.path.join(os.getcwd(), path_to_picture)
     if os.path.exists(folder_path):
@@ -32,8 +40,9 @@ def play_sound(file_name):
 
 
 def get_model(model_name):
-    path_to_picture = os.path.join(f"modele", model_name)
-    model_path = os.path.join(os.getcwd(), path_to_picture)
+    """Pozyskanie modelu do klasyfikacji o podanej nazwie"""
+    path_to_model = os.path.join(f"modele", model_name)
+    model_path = os.path.join(os.getcwd(), path_to_model)
     model = load_model(model_path)
     return model
 
@@ -45,16 +54,13 @@ def get_model(model_name):
 
 
 def safe_to_file_history(history):
+    """Zapisanie danych o historii do pliku w formacie JSON"""
     if not os.path.exists("historia"):
         os.makedirs("historia")
 
     time_now = datetime.now()
     file_name = f"{time_now.strftime('%Y-%m-%d_%H-%M-%S')}.json"
-    # file_name = f"{time_now.strftime('%d-%m-%Y_%H-%M-%S')}.json"
     path_file = os.path.join("historia", file_name)
 
     with open(path_file, 'w') as plik:
         json.dump(history, plik, indent=2)
-
-    # Uaktualnienie danych w historii
-    # self.add_history_data()
