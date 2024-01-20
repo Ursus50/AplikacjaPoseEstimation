@@ -753,6 +753,5 @@ if __name__ == "__main__":
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Tree.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Squat.mp4')
     # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy3\Warrior.mp4')
-    # app = AplicationPoseEstimation(root, r'C:\Inzynierka\Programy\Filmy\Warrior.mp4')
 
     root.mainloop()
